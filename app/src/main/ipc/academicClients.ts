@@ -15,12 +15,19 @@
  * When neither is available, that source is left out of the list entirely:
  * with OpenAlex already covering domestic search, showing the user mock
  * data for KCI/ScienceON no longer serves any purpose.
+ *
+ * Google CSE (T32, NFR-ACAPI-002 조기 구현) covers RISS theses/dissertations,
+ * which OpenAlex does not index. It has no bundled-key fallback: it is
+ * included only when BOTH a user-registered key AND a non-empty `cx`
+ * (search-engine id) are available. `cx` is not a per-user secret, but it is
+ * still a required build/remote-config input — see `defaultSettings.ts`.
  */
 
 import type { AppSettings } from '../config/defaultSettings';
 import type { KeyReadResult, KeyStore } from '../config/keyStore';
 import { BUNDLED_ACADEMIC_KEYS } from '../config/bundledKeys';
 import type { AcademicClient } from '../../core/academic-api/types';
+import { GoogleCseClient } from '../../core/academic-api/googleCseClient';
 import { KciClient } from '../../core/academic-api/kciClient';
 import { OpenAlexClient } from '../../core/academic-api/openAlexClient';
 import { ScienceOnClient } from '../../core/academic-api/scienceOnClient';
@@ -82,6 +89,21 @@ export function buildAcademicClients(settings: AppSettings, keyStore: KeyStore):
       new ScienceOnClient({
         baseUrl: settings.endpoints.scienceon,
         apiKey: scienceonResolved.apiKey,
+        mockMode: false,
+      }),
+    );
+  }
+
+  // Google CSE has no bundled-key fallback (see module doc): both a
+  // user-registered key and a non-empty cx must be present.
+  const googleCseKeyResult = keyStore.readKey('googlecse');
+  const googleCseCx = settings.academicSearch.googleCseCx.trim();
+  if (googleCseKeyResult.ok && googleCseCx.length > 0) {
+    clients.push(
+      new GoogleCseClient({
+        baseUrl: settings.endpoints.googleCse,
+        apiKey: googleCseKeyResult.key,
+        cx: googleCseCx,
         mockMode: false,
       }),
     );

@@ -13,13 +13,19 @@
 import { useEffect, useState } from 'react';
 
 import { ChatScreen } from './chat';
-import { createChatScreenCallbacks, createWizardCallbacks, createWritingCheckCallbacks } from './appCallbacks';
+import {
+  createChatScreenCallbacks,
+  createSettingsScreenCallbacks,
+  createWizardCallbacks,
+  createWritingCheckCallbacks,
+} from './appCallbacks';
+import { SettingsScreen } from './settings/SettingsScreen';
 import { Wizard } from './settings/wizard';
 import { WritingCheckScreen } from './writing/WritingCheckScreen';
 import './appTabs.css';
 
 type BootStatus = 'loading' | 'wizard' | 'chat';
-type MainTab = 'chat' | 'writing';
+type MainTab = 'chat' | 'writing' | 'settings';
 
 export function App(): JSX.Element {
   const [status, setStatus] = useState<BootStatus>('loading');
@@ -82,13 +88,20 @@ export function App(): JSX.Element {
         >
           ✍️ 서론 점검
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mainTab === 'settings'}
+          className={`app-tab-btn${mainTab === 'settings' ? ' app-tab-btn-active' : ''}`}
+          onClick={() => setMainTab('settings')}
+        >
+          ⚙️ 설정
+        </button>
       </div>
 
-      {mainTab === 'chat' ? (
-        <ChatScreen callbacks={createChatScreenCallbacks()} />
-      ) : (
-        <WritingCheckScreen callbacks={createWritingCheckCallbacks()} />
-      )}
+      {mainTab === 'chat' && <ChatScreen callbacks={createChatScreenCallbacks()} />}
+      {mainTab === 'writing' && <WritingCheckScreen callbacks={createWritingCheckCallbacks()} />}
+      {mainTab === 'settings' && <SettingsScreen callbacks={createSettingsScreenCallbacks()} />}
     </div>
   );
 }

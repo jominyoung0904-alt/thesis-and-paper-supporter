@@ -14,7 +14,7 @@
  * instead of crashing the whole deep-research run.
  */
 
-export type AcademicSource = 'kci' | 'scienceon' | 'semanticscholar' | 'openalex';
+export type AcademicSource = 'kci' | 'scienceon' | 'semanticscholar' | 'openalex' | 'googlecse';
 
 export interface PaperMetadata {
   source: AcademicSource;

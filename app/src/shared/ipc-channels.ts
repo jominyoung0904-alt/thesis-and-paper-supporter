@@ -30,6 +30,10 @@ export const IpcChannels = {
   MEMORY_SAVE_DECISION: 'memory:save-decision',
   /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */
   QUALITY_GATE_RUN: 'quality-gate:run',
+  /** Saves a personal academic-search API key (kci/scienceon/googlecse) (NFR-ACAPI-002). */
+  SETTINGS_SAVE_ACADEMIC_KEY: 'settings:save-academic-key',
+  /** Reports which academic-search providers currently have a key registered. */
+  SETTINGS_GET_ACADEMIC_KEY_STATUS: 'settings:get-academic-key-status',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];
@@ -145,4 +149,30 @@ export interface QualityGateRunResult {
   passed: boolean;
   results: IpcCriterionResult[];
   summary: string;
+}
+
+// --- settings:save-academic-key / settings:get-academic-key-status ---
+
+/** Academic-search API key providers manageable from the Settings tab (NFR-ACAPI-002). */
+export type IpcAcademicKeyProvider = 'kci' | 'scienceon' | 'googlecse';
+
+export interface SaveAcademicKeyRequest {
+  provider: IpcAcademicKeyProvider;
+  key: string;
+}
+
+export interface SaveAcademicKeyResult {
+  ok: boolean;
+  /**
+   * Korean-language message. Required on failure. Also set on a *successful*
+   * kci/scienceon save, as a usage caveat — those keys are only verified
+   * against the IP/MAC allow-listed at issuance, never against a live call.
+   */
+  message?: string;
+}
+
+export interface AcademicKeyStatus {
+  kci: boolean;
+  scienceon: boolean;
+  googlecse: boolean;
 }

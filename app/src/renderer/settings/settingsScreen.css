@@ -1,0 +1,121 @@
+/*
+ * Settings tab styling. Same large-text, high-contrast approach as
+ * wizard.css/writingCheckScreen.css.
+ */
+
+.settings-screen {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.settings-screen-lead {
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.settings-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-card {
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.settings-card-header h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.settings-card-badge {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.settings-card-desc {
+  margin: 0 0 6px;
+}
+
+.settings-card-difficulty {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #555;
+}
+
+.settings-card-restriction {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #b45309;
+}
+
+.settings-card-guide-link {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+}
+
+.settings-card-field {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-card-input {
+  flex: 1;
+  font-size: 16px;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+}
+
+.settings-card-save-btn {
+  padding: 0 20px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.settings-card-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-card-message {
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+
+.settings-card-message-success {
+  color: #166534;
+}
+
+.settings-card-message-error {
+  color: #b91c1c;
+}

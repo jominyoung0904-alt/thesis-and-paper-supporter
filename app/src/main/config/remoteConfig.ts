@@ -126,6 +126,7 @@ const ALLOWED_ENDPOINT_HOST_SUFFIXES: Record<keyof EndpointsConfig, string[]> = 
   scienceon: ['kisti.re.kr'],
   semanticScholar: ['semanticscholar.org'],
   openalex: ['openalex.org'],
+  googleCse: ['googleapis.com'],
 };
 
 function isAllowedEndpointOverride(key: keyof EndpointsConfig, value: unknown): value is string {

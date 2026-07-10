@@ -28,6 +28,20 @@ export interface EndpointsConfig {
   semanticScholar: string;
   /** OpenAlex API base URL — keyless, no IP/MAC restriction (SPEC-TSA-001 후속). */
   openalex: string;
+  /** Google Custom Search JSON API base URL (T32, NFR-ACAPI-002 조기 구현). */
+  googleCse: string;
+}
+
+/** Academic-search configuration not tied to a single provider's base URL. */
+export interface AcademicSearchConfig {
+  /**
+   * Google Programmable Search Engine id (cx) restricting results to
+   * riss.kr. Not a secret — safe to ship in the settings file or a remote
+   * config override. Empty string means "not configured yet"; the Google
+   * CSE client is then omitted entirely regardless of whether the user has
+   * registered their own API key (see `academicClients.ts`).
+   */
+  googleCseCx: string;
 }
 
 /** Optional outbound HTTP proxy configuration, e.g. for restricted networks. */
@@ -48,6 +62,8 @@ export interface AppSettings {
   /** URL of the remote endpoints.json used to refresh `endpoints` at startup. */
   remoteConfigUrl: string;
   proxy: ProxyConfig;
+  /** Academic-search settings not owned by a single provider's endpoint (T32). */
+  academicSearch: AcademicSearchConfig;
 }
 
 /** Current settings schema version. Bump when adding/removing/renaming keys. */
@@ -72,12 +88,20 @@ const DEFAULT_SETTINGS_TEMPLATE: AppSettings = {
     scienceon: 'https://apigateway.kisti.re.kr',
     semanticScholar: 'https://api.semanticscholar.org',
     openalex: 'https://api.openalex.org',
+    googleCse: 'https://www.googleapis.com',
   },
   // Placeholder — replace OWNER with the actual GitHub Pages owner/repo once published.
   remoteConfigUrl: 'https://OWNER.github.io/thesis-supporter/endpoints.json',
   proxy: {
     enabled: false,
     url: '',
+  },
+  academicSearch: {
+    // riss.kr-restricted Programmable Search Engine created for this app
+    // (2026-07-11). A cx is a public engine identifier, not a secret —
+    // quota is billed to each user's own API key. Editable via
+    // config/settings.json if the engine definition ever changes.
+    googleCseCx: 'e1e179dafec704d39',
   },
 };
 

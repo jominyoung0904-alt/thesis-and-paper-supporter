@@ -86,6 +86,7 @@ export const SOURCE_LABELS: Record<AcademicSource, string> = {
   scienceon: 'ScienceON',
   semanticscholar: 'Semantic Scholar',
   openalex: '국내외 통합(OpenAlex)',
+  googlecse: '학위논문(RISS·구글 검색)',
 };
 
 /** Korean labels for search-failure reasons, used in the transparency paragraph. */

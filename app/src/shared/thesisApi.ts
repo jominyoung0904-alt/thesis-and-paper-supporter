@@ -6,13 +6,16 @@
  */
 
 import type {
+  AcademicKeyStatus,
   ChatSendResult,
+  IpcAcademicKeyProvider,
   IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
   QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunResult,
+  SaveAcademicKeyResult,
   SaveProviderAndKeyResult,
   StartupState,
 } from './ipc-channels';
@@ -32,4 +35,8 @@ export interface ThesisApi {
   saveDecision(what: string, why: string): Promise<void>;
   /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */
   runQualityGate(sectionId: IpcGateSectionId, text: string): Promise<QualityGateRunResult>;
+  /** Saves a personal academic-search API key (NFR-ACAPI-002). */
+  saveAcademicKey(provider: IpcAcademicKeyProvider, key: string): Promise<SaveAcademicKeyResult>;
+  /** Reports which academic-search providers currently have a key registered. */
+  getAcademicKeyStatus(): Promise<AcademicKeyStatus>;
 }

@@ -13,6 +13,7 @@
  * restarts is out of scope for this sprint (known gap, see completion report).
  */
 import type { WizardCallbacks } from './settings/wizard';
+import type { SettingsScreenCallbacks } from './settings/SettingsScreen';
 import type { ChatScreenCallbacks } from './chat';
 import type { WritingCheckCallbacks } from './writing/WritingCheckScreen';
 
@@ -61,5 +62,13 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
 export function createWritingCheckCallbacks(): WritingCheckCallbacks {
   return {
     runQualityGate: (sectionId, text) => window.thesisApi.runQualityGate(sectionId, text),
+  };
+}
+
+export function createSettingsScreenCallbacks(): SettingsScreenCallbacks {
+  return {
+    saveAcademicKey: (provider, key) => window.thesisApi.saveAcademicKey(provider, key),
+    getAcademicKeyStatus: () => window.thesisApi.getAcademicKeyStatus(),
+    openExternal: (url) => window.thesisApi.openExternal(url),
   };
 }

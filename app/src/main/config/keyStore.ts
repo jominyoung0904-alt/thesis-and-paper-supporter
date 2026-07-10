@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
  * NFR-LLM-002: keys are never sent anywhere except the provider's own API and
  * are never stored in plain text on disk.
  */
-export type KeyProvider = 'claude' | 'gemini' | 'openai' | 'kci' | 'scienceon';
+export type KeyProvider = 'claude' | 'gemini' | 'openai' | 'kci' | 'scienceon' | 'googlecse';
 
 /**
  * Abstraction over the platform encryption primitive so {@link KeyStore}'s

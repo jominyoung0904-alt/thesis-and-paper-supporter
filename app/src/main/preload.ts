@@ -11,7 +11,9 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 import type {
+  AcademicKeyStatus,
   ChatSendResult,
+  IpcAcademicKeyProvider,
   IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
@@ -20,6 +22,8 @@ import type {
   QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunResult,
+  SaveAcademicKeyRequest,
+  SaveAcademicKeyResult,
   SaveDecisionRequest,
   SaveProviderAndKeyRequest,
   SaveProviderAndKeyResult,
@@ -45,6 +49,8 @@ const IpcChannels = {
   RESEARCH_PROGRESS: 'research:progress',
   MEMORY_SAVE_DECISION: 'memory:save-decision',
   QUALITY_GATE_RUN: 'quality-gate:run',
+  SETTINGS_SAVE_ACADEMIC_KEY: 'settings:save-academic-key',
+  SETTINGS_GET_ACADEMIC_KEY_STATUS: 'settings:get-academic-key-status',
 } as const;
 
 const thesisApi: ThesisApi = {
@@ -95,6 +101,15 @@ const thesisApi: ThesisApi = {
   runQualityGate(sectionId: IpcGateSectionId, text: string): Promise<QualityGateRunResult> {
     const req: QualityGateRunRequest = { sectionId, text };
     return ipcRenderer.invoke(IpcChannels.QUALITY_GATE_RUN, req) as Promise<QualityGateRunResult>;
+  },
+
+  saveAcademicKey(provider: IpcAcademicKeyProvider, key: string): Promise<SaveAcademicKeyResult> {
+    const req: SaveAcademicKeyRequest = { provider, key };
+    return ipcRenderer.invoke(IpcChannels.SETTINGS_SAVE_ACADEMIC_KEY, req) as Promise<SaveAcademicKeyResult>;
+  },
+
+  getAcademicKeyStatus(): Promise<AcademicKeyStatus> {
+    return ipcRenderer.invoke(IpcChannels.SETTINGS_GET_ACADEMIC_KEY_STATUS) as Promise<AcademicKeyStatus>;
   },
 };
 

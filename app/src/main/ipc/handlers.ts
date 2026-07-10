@@ -39,6 +39,7 @@ import type {
   StartupState,
 } from '../../shared/ipc-channels';
 import { buildAcademicClients } from './academicClients';
+import { registerAcademicKeyHandlers } from './academicKeyHandlers';
 import { createLlmService, NO_KEY_MESSAGE } from './llmService';
 import { mapDeepResearchResult } from './researchMapper';
 
@@ -78,6 +79,8 @@ function isBoundedString(value: unknown, maxLength: number): value is string {
 // @AX:ANCHOR: [AUTO] central IPC wiring — composition root registering every channel handler. Related: SPEC-TSA-001
 export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   const { keyStore, settingsFile, getSettings, setSettings, memoryFilePath } = deps;
+
+  registerAcademicKeyHandlers({ keyStore, getSettings });
 
   const memoryStore = new MemoryStore(memoryFilePath);
   memoryStore.load();
