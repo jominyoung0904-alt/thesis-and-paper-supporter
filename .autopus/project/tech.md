@@ -28,10 +28,10 @@ npm run package     # dist + ../scripts/package-zip.mjs (배포 zip 조립)
 권한 문제로 실패할 수 있음 — 해결: 캐시 .7z를 `-x!darwin` 옵션으로 수동 추출
 (2026-07-11 적용됨, 캐시는 사용자 프로필에 영구 보존).
 
-## 테스트 현황 (Sprint 1 종료)
+## 테스트 현황 (Sprint 2 종료)
 
-- 297개 통과 (unit 20파일 + e2e 4파일)
-- 커버리지: core 94~99%, main/config 87%, Electron 진입점·React 컴포넌트는 0%(런타임 필요 — Sprint 2 GUI E2E 대상)
+- 832개 통과 (unit 52파일 + e2e 17파일 — Sprint 1 종료 시 297개)
+- Electron 진입점·React 컴포넌트는 여전히 자동화 0%(런타임 필요 — 실기기 수동 확인으로 보완, GUI 자동화는 백로그)
 
 ## 아키텍처 패턴
 

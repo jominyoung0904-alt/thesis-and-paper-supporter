@@ -1,7 +1,7 @@
 ---
 id: SPEC-TSA-002
 title: 논문 작성 서포터 Sprint 2 — 프로젝트 관리 중심 기능 확장
-status: draft
+status: implemented
 created: 2026-07-11
 domain: TSA
 source:
@@ -11,7 +11,7 @@ source:
 
 # SPEC-TSA-002: 논문 작성 서포터 Sprint 2 — 프로젝트 관리 중심 기능 확장
 
-**Status**: draft
+**Status**: implemented (Sprint 2 — 2026-07-11 sync 완료; 실행 기록은 plan.md 하단 참조)
 **Created**: 2026-07-11
 **Domain**: TSA (Thesis Support App)
 
