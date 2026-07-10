@@ -90,8 +90,10 @@ const DEFAULT_SETTINGS_TEMPLATE: AppSettings = {
     openalex: 'https://api.openalex.org',
     googleCse: 'https://www.googleapis.com',
   },
-  // Placeholder — replace OWNER with the actual GitHub Pages owner/repo once published.
-  remoteConfigUrl: 'https://OWNER.github.io/thesis-supporter/endpoints.json',
+  // Live remote-config file (GitHub Pages, provisioned 2026-07-11). Editing
+  // that file updates endpoint overrides / notices for every install without
+  // shipping a new zip. See NFR-CFG-002.
+  remoteConfigUrl: 'https://jominyoung0904-alt.github.io/thesis-and-paper-supporter/endpoints.json',
   proxy: {
     enabled: false,
     url: '',
