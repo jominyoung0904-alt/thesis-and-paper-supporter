@@ -1,0 +1,107 @@
+/*
+ * `MockReviewHistoryPanel` styling. Same list/detail structure as
+ * `gateHistoryScreen.css`, scoped under `mock-review-history-*`.
+ */
+
+.mock-review-history {
+  border-top: 2px solid #ddd;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mock-review-history-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.mock-review-history-empty {
+  color: #666;
+  margin: 0;
+}
+
+.mock-review-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-review-history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mock-review-history-item-selected {
+  border-color: #2563eb;
+}
+
+.mock-review-history-item-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.mock-review-history-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mock-review-history-item-date {
+  font-size: 14px;
+  color: #666;
+}
+
+.mock-review-history-item-preview {
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-review-history-item-remove {
+  border: none;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+.mock-review-history-detail {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+}
+
+.mock-review-history-detail-comment {
+  margin: 0 0 10px 0;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.mock-review-history-detail-weaknesses {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

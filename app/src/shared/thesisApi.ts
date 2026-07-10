@@ -24,12 +24,16 @@ import type {
   LibraryRemoveResult,
   LibrarySaveResult,
   LibraryUpdateMemoResult,
+  MockReviewHistoryGetResult,
+  MockReviewHistoryListResult,
+  MockReviewHistoryRemoveResult,
   ProjectArchiveResult,
   ProjectCreateResult,
   ProjectListResult,
   ProjectRenameResult,
   ProjectSwitchResult,
   QualityGateRunResult,
+  ResearchHandoffStartResult,
   ResearchHistoryGetResult,
   ResearchHistoryListResult,
   ResearchHistoryRemoveResult,
@@ -38,6 +42,8 @@ import type {
   SaveAcademicKeyResult,
   SaveProviderAndKeyResult,
   StartupState,
+  WritingMockReviewResult,
+  WritingPolishResult,
 } from './ipc-channels';
 
 export interface ThesisApi {
@@ -97,4 +103,16 @@ export interface ThesisApi {
   getGateRecord(id: string): Promise<GateHistoryGetResult>;
   /** Deletes a single gate record by id (FR-WRT-008). */
   removeGateRecord(id: string): Promise<GateHistoryRemoveResult>;
+  /** Starts a "이 결과로 회의하기" handoff for a saved research record (FR-RSH-003). */
+  startResearchHandoff(researchId: string): Promise<ResearchHandoffStartResult>;
+  /** Runs the academic sentence-polishing engine against user-supplied text (FR-WRT-010). */
+  runPolish(text: string): Promise<WritingPolishResult>;
+  /** Runs the single-model "Reviewer 2" mock peer review against user-supplied text (FR-WRT-011). */
+  runMockReview(text: string): Promise<WritingMockReviewResult>;
+  /** Lists every saved mock-review record (summary view) for the active project (FR-WRT-011). */
+  listMockReviewHistory(): Promise<MockReviewHistoryListResult>;
+  /** Loads a single full mock-review record by id (FR-WRT-011). */
+  getMockReviewRecord(id: string): Promise<MockReviewHistoryGetResult>;
+  /** Deletes a single mock-review record by id (FR-WRT-011). */
+  removeMockReviewRecord(id: string): Promise<MockReviewHistoryRemoveResult>;
 }

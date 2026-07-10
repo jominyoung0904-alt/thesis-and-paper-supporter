@@ -39,8 +39,10 @@ import { createLlmService } from './llmService';
 import { ProjectContext } from './projectContext';
 import { registerProjectHandlers } from './projectHandlers';
 import { registerResearchGateHandlers } from './researchGateHandlers';
+import { registerResearchHandoffHandlers } from './researchHandoffHandlers';
 import { registerResearchHistoryHandlers } from './researchHistoryHandlers';
 import { registerSettingsHandlers } from './settingsHandlers';
+import { registerWritingExtHandlers } from './writingExtHandlers';
 
 export interface IpcHandlerDeps {
   keyStore: KeyStore;
@@ -117,6 +119,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   const getResearchDir = () => projectContext.getServices().projectPaths.researchDir;
   const getChatsDir = () => projectContext.getServices().projectPaths.chatsDir;
   const getGateDir = () => projectContext.getServices().projectPaths.gateDir;
+  const getMockReviewDir = () => projectContext.getServices().projectPaths.mockReviewDir;
 
   registerSettingsHandlers({ keyStore, settingsFile, getSettings, setSettings, llmService, conversation });
   registerChatHandlers({ llmService, getMemoryStore, conversation, getChatsDir, activeChatSession });
@@ -126,4 +129,6 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerResearchHistoryHandlers({ getResearchDir });
   registerChatHistoryHandlers({ getChatsDir, conversation, activeSession: activeChatSession });
   registerGateHistoryHandlers({ getGateDir });
+  registerResearchHandoffHandlers({ getResearchDir, conversation, activeSession: activeChatSession });
+  registerWritingExtHandlers({ llmService, getMemoryStore, getMockReviewDir });
 }

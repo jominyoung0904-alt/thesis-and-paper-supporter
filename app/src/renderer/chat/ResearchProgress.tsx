@@ -21,6 +21,17 @@
  * means the save button "just works" for `ResearchHistoryScreen`, which
  * reuses this same component (see `research/researchHistoryLogic.ts`'s
  * `toResearchRunState`).
+ *
+ * Task T51 (FR-RSH-003): a finished result also carries a "💬 이 결과로
+ * 회의하기" handoff button (`onStartHandoff`/`onHandoffComplete`, state
+ * managed by `useResearchHandoffButtonState`). Unlike the library-save
+ * button above, id resolution differs per caller (a fresh chat result has
+ * no id of its own; a reopened history record already has one) — both
+ * props are threaded through so `ChatScreen.tsx` and
+ * `ResearchHistoryScreen.tsx` can each supply their own resolution
+ * strategy. Both are optional and the button is hidden when
+ * `onStartHandoff` is absent, since the underlying `thesisApi` bridge
+ * method is not wired centrally until T62.
  */
 import { useState } from 'react';
 
@@ -29,13 +40,21 @@ import { parseMarkdownLite } from './markdownLite';
 import { researchStageIndex, researchStageLabel, RESEARCH_STAGE_COUNT } from './progressStages';
 import { ReferenceRow } from './researchReferenceRow';
 import { useLibrarySaveState } from './useLibrarySaveState';
+import { useResearchHandoffButtonState } from './useResearchHandoffButtonState';
+import type { HandoffButtonStatus } from './useResearchHandoffButtonState';
 import type { ResearchFailedSourceView, ResearchView } from './chatTypes';
 import type { ResearchRunState } from './chatUiLogic';
+import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
+import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 import './researchPanel.css';
 
 interface ResearchProgressProps {
   research: ResearchRunState;
   onOpenLink(url: string): void;
+  /** Resolves the record id + calls `research-handoff:start`. Hidden when absent (T51, FR-RSH-003). */
+  onStartHandoff?: () => Promise<ResearchHandoffStartResult>;
+  /** Fired after a successful handoff so the host screen can load the injected transcript. */
+  onHandoffComplete?: (messages: IpcChatMessage[], preview: string) => void;
 }
 
 function ProgressBar({ stage }: { stage: string | null }): JSX.Element {
@@ -60,6 +79,30 @@ function FailedSourceBanner({ failedSources }: { failedSources: ResearchFailedSo
     <p className="research-failed-banner">
       일부 학술 데이터베이스({summary})에 연결이 원활하지 않아, 나머지 결과만 보여드려요.
     </p>
+  );
+}
+
+/** "💬 이 결과로 회의하기" button + inline error line (Task T51, FR-RSH-003). */
+function HandoffButton({
+  status,
+  errorMessage,
+  onClick,
+}: {
+  status: HandoffButtonStatus;
+  errorMessage: string | null;
+  onClick(): void;
+}): JSX.Element {
+  return (
+    <div className="research-handoff">
+      <button type="button" className="research-handoff-btn" onClick={onClick} disabled={status === 'loading'}>
+        {status === 'loading' ? '회의를 준비하고 있어요…' : '💬 이 결과로 회의하기'}
+      </button>
+      {errorMessage && (
+        <p className="research-handoff-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -126,7 +169,12 @@ function ReportBody({
   );
 }
 
-export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps): JSX.Element | null {
+export function ResearchProgress({
+  research,
+  onOpenLink,
+  onStartHandoff,
+  onHandoffComplete,
+}: ResearchProgressProps): JSX.Element | null {
   // Which numbered reference row is currently highlighted after a `[n]`
   // citation click (Task T35 fix#2), if any. Cleared automatically after
   // `CITATION_HIGHLIGHT_MS`.
@@ -134,6 +182,9 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
 
   // Library-save button state (Task T45, FR-LIB-001) — see `useLibrarySaveState.ts`.
   const librarySave = useLibrarySaveState();
+
+  // Handoff button state (Task T51, FR-RSH-003) — see `useResearchHandoffButtonState.ts`.
+  const handoff = useResearchHandoffButtonState((messages, preview) => onHandoffComplete?.(messages, preview));
 
   function handleCitationClick(number: number): void {
     document.getElementById(referenceElementId(number))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -153,6 +204,13 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
       {research.errorMessage && <p className="research-error">{research.errorMessage}</p>}
       {research.result && (
         <div className="research-result">
+          {onStartHandoff && (
+            <HandoffButton
+              status={handoff.status}
+              errorMessage={handoff.errorMessage}
+              onClick={() => handoff.trigger(onStartHandoff)}
+            />
+          )}
           <FailedSourceBanner failedSources={research.result.failedSources} />
           <ReportBody report={research.result.report} onCitationClick={handleCitationClick} />
           {research.result.citedPapers.length > 0 && (

@@ -10,19 +10,25 @@
  *
  * Detail view reuses `ResearchProgress` (chat/ResearchProgress.tsx) for the
  * actual report + citation + reference rendering — see
- * `researchHistoryLogic.ts`'s `toResearchRunState` for the adapter.
+ * `researchHistoryLogic.ts`'s `toResearchRunState` for the adapter. That
+ * same reuse also brings along `ResearchProgress`'s "💬 이 결과로 회의하기"
+ * button (Task T51, FR-RSH-003): unlike `ChatScreen.tsx` (which must resolve
+ * a fresh result's history id indirectly), this screen already knows
+ * `detail.id` directly, so `startResearchHandoff` is called with it as-is.
  *
- * Out of scope for this task: a "보관함에 저장" button on cited/related papers
- * (FR-RSH-003) would go inside the detail view, right after the
- * `<ResearchProgress>` render below — left for T51/T62 to wire once T45's
- * library-save UI extension to `ResearchProgress` lands, to avoid two tasks
- * editing the same render path in parallel.
+ * `startResearchHandoff`/`onHandoffComplete` are optional props, undefined
+ * until T62 wires this screen into `App.tsx` alongside the real
+ * `thesisApi.startResearchHandoff` bridge method — the handoff button stays
+ * hidden while `startResearchHandoff` is absent, same convention
+ * `ResearchProgress.tsx` documents.
  */
 import { useEffect, useState } from 'react';
 
 import type { ResearchHistoryScreenCallbacks } from '../appCallbacks';
 import { ResearchProgress } from '../chat/ResearchProgress';
 import type { ResearchHistoryRecord, ResearchHistorySummary } from '../../shared/ipc/researchHistory';
+import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
+import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 import { formatRanAt, sortSummariesByRecency, summarizeCitedCount, toDisplayErrorMessage, toResearchRunState } from './researchHistoryLogic';
 import './researchHistory.css';
 
@@ -30,9 +36,25 @@ export interface ResearchHistoryScreenProps {
   callbacks: ResearchHistoryScreenCallbacks;
   /** Opens a URL in the user's default external browser, delegated to the host shell. */
   openLink: (url: string) => void;
+  /**
+   * Starts a "이 결과로 회의하기" handoff for a given record id (FR-RSH-003,
+   * T51). Optional until T62 wires `thesisApi.startResearchHandoff`
+   * centrally — the detail view's handoff button is hidden when absent.
+   */
+  startResearchHandoff?: (researchId: string) => Promise<ResearchHandoffStartResult>;
+  /**
+   * Fired after a successful handoff so the host shell (App.tsx, T62) can
+   * switch to the chat screen with the injected transcript pre-loaded.
+   */
+  onHandoffComplete?: (messages: IpcChatMessage[], preview: string) => void;
 }
 
-export function ResearchHistoryScreen({ callbacks, openLink }: ResearchHistoryScreenProps): JSX.Element {
+export function ResearchHistoryScreen({
+  callbacks,
+  openLink,
+  startResearchHandoff,
+  onHandoffComplete,
+}: ResearchHistoryScreenProps): JSX.Element {
   const [records, setRecords] = useState<ResearchHistorySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -133,7 +155,12 @@ export function ResearchHistoryScreen({ callbacks, openLink }: ResearchHistorySc
                 삭제
               </button>
             </div>
-            <ResearchProgress research={toResearchRunState(detail)} onOpenLink={openLink} />
+            <ResearchProgress
+              research={toResearchRunState(detail)}
+              onOpenLink={openLink}
+              onStartHandoff={startResearchHandoff ? () => startResearchHandoff(detail.id) : undefined}
+              onHandoffComplete={onHandoffComplete}
+            />
           </>
         )}
       </div>

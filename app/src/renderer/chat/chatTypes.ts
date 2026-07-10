@@ -23,6 +23,7 @@
  * `saveToLibrary`.
  */
 import type { IpcPaperMetadata } from '../../shared/ipc-channels';
+import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 
 /** Chat mode toggle shown above the input box. */
 export type ChatMode = 'discuss' | 'research';
@@ -97,6 +98,15 @@ export interface ChatScreenCallbacks {
   saveDecision(what: string, why: string): Promise<void>;
   /** Opens a URL in the user's default external browser (never a raw `<a target=_blank>`). */
   openLink(url: string): void;
+  /**
+   * Starts a "이 결과로 회의하기" handoff for a saved research record
+   * (FR-RSH-003, T51): reloads its report + reference lists as the opening
+   * turns of a brand-new chat. Optional — undefined until T62 wires
+   * `appCallbacks.ts`'s `createChatScreenCallbacks()` to the real
+   * `thesisApi.startResearchHandoff` bridge method; `ResearchProgress`'s
+   * handoff button stays hidden while this is absent.
+   */
+  startResearchHandoff?(researchId: string): Promise<ResearchHandoffStartResult>;
 }
 
 export interface ChatScreenProps {

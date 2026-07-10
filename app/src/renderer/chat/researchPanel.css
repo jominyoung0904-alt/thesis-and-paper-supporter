@@ -25,6 +25,33 @@
   color: #b91c1c;
 }
 
+/* "이 결과로 회의하기" handoff button (Task T51, FR-RSH-003). */
+.research-handoff {
+  margin-bottom: 12px;
+}
+
+.research-handoff-btn {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.research-handoff-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.research-handoff-error {
+  color: #b91c1c;
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+
 .research-failed-banner {
   background: #fef3c7;
   border-radius: 8px;

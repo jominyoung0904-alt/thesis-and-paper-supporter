@@ -32,6 +32,9 @@ import type {
   LibrarySaveResult,
   LibraryUpdateMemoRequest,
   LibraryUpdateMemoResult,
+  MockReviewHistoryGetResult,
+  MockReviewHistoryListResult,
+  MockReviewHistoryRemoveResult,
   OpenExternalRequest,
   ProjectArchiveRequest,
   ProjectArchiveResult,
@@ -44,6 +47,7 @@ import type {
   ProjectSwitchResult,
   QualityGateRunRequest,
   QualityGateRunResult,
+  ResearchHandoffStartResult,
   ResearchHistoryGetResult,
   ResearchHistoryListResult,
   ResearchHistoryRemoveResult,
@@ -55,6 +59,8 @@ import type {
   SaveProviderAndKeyRequest,
   SaveProviderAndKeyResult,
   StartupState,
+  WritingMockReviewResult,
+  WritingPolishResult,
 } from '../shared/ipc-channels';
 import type { ThesisApi } from '../shared/thesisApi';
 
@@ -97,6 +103,12 @@ const IpcChannels = {
   GATE_HISTORY_LIST: 'gate-history:list',
   GATE_HISTORY_GET: 'gate-history:get',
   GATE_HISTORY_REMOVE: 'gate-history:remove',
+  RESEARCH_HANDOFF_START: 'research-handoff:start',
+  WRITING_POLISH: 'writing:polish',
+  WRITING_MOCK_REVIEW: 'writing:mock-review',
+  MOCK_REVIEW_HISTORY_LIST: 'writing:mock-review-history:list',
+  MOCK_REVIEW_HISTORY_GET: 'writing:mock-review-history:get',
+  MOCK_REVIEW_HISTORY_REMOVE: 'writing:mock-review-history:remove',
 } as const;
 
 const thesisApi: ThesisApi = {
@@ -239,6 +251,30 @@ const thesisApi: ThesisApi = {
 
   removeGateRecord(id: string): Promise<GateHistoryRemoveResult> {
     return ipcRenderer.invoke(IpcChannels.GATE_HISTORY_REMOVE, { id }) as Promise<GateHistoryRemoveResult>;
+  },
+
+  startResearchHandoff(researchId: string): Promise<ResearchHandoffStartResult> {
+    return ipcRenderer.invoke(IpcChannels.RESEARCH_HANDOFF_START, { researchId }) as Promise<ResearchHandoffStartResult>;
+  },
+
+  runPolish(text: string): Promise<WritingPolishResult> {
+    return ipcRenderer.invoke(IpcChannels.WRITING_POLISH, { text }) as Promise<WritingPolishResult>;
+  },
+
+  runMockReview(text: string): Promise<WritingMockReviewResult> {
+    return ipcRenderer.invoke(IpcChannels.WRITING_MOCK_REVIEW, { text }) as Promise<WritingMockReviewResult>;
+  },
+
+  listMockReviewHistory(): Promise<MockReviewHistoryListResult> {
+    return ipcRenderer.invoke(IpcChannels.MOCK_REVIEW_HISTORY_LIST) as Promise<MockReviewHistoryListResult>;
+  },
+
+  getMockReviewRecord(id: string): Promise<MockReviewHistoryGetResult> {
+    return ipcRenderer.invoke(IpcChannels.MOCK_REVIEW_HISTORY_GET, { id }) as Promise<MockReviewHistoryGetResult>;
+  },
+
+  removeMockReviewRecord(id: string): Promise<MockReviewHistoryRemoveResult> {
+    return ipcRenderer.invoke(IpcChannels.MOCK_REVIEW_HISTORY_REMOVE, { id }) as Promise<MockReviewHistoryRemoveResult>;
   },
 };
 

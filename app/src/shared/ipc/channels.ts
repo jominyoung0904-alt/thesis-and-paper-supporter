@@ -71,6 +71,18 @@ export const IpcChannels = {
   GATE_HISTORY_GET: 'gate-history:get',
   /** Deletes a single gate record by id (FR-WRT-008). */
   GATE_HISTORY_REMOVE: 'gate-history:remove',
+  /** Starts a "이 결과로 회의하기" handoff for a saved research record (FR-RSH-003). */
+  RESEARCH_HANDOFF_START: 'research-handoff:start',
+  /** Runs the academic sentence-polishing engine against user-supplied text (FR-WRT-010). */
+  WRITING_POLISH: 'writing:polish',
+  /** Runs the single-model "Reviewer 2" mock peer review against user-supplied text (FR-WRT-011). */
+  WRITING_MOCK_REVIEW: 'writing:mock-review',
+  /** Lists every saved mock-review record (summary view) for the active project (FR-WRT-011). */
+  MOCK_REVIEW_HISTORY_LIST: 'writing:mock-review-history:list',
+  /** Loads a single full mock-review record by id (FR-WRT-011). */
+  MOCK_REVIEW_HISTORY_GET: 'writing:mock-review-history:get',
+  /** Deletes a single mock-review record by id (FR-WRT-011). */
+  MOCK_REVIEW_HISTORY_REMOVE: 'writing:mock-review-history:remove',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];

@@ -23,3 +23,5 @@ export * from './library';
 export * from './researchHistory';
 export * from './chatHistory';
 export * from './gateHistory';
+export * from './researchHandoff';
+export * from './writingExt';

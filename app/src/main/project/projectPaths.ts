@@ -28,8 +28,10 @@ export interface ProjectPaths {
   chatsDir: string;
   /** Directory holding per-research-run history files. */
   researchDir: string;
-  /** Directory holding writing-gate / mock-review check history files. */
+  /** Directory holding writing-gate check history files. */
   gateDir: string;
+  /** Directory holding mock-review (Reviewer 2 role-play) check history files (FR-WRT-011). */
+  mockReviewDir: string;
   /** Deep-research checkpoint file (resume-from-last-step). */
   checkpointFile: string;
 }
@@ -69,6 +71,7 @@ export function resolveProjectPaths(dataDir: string, projectId: string): Project
     chatsDir: join(root, 'chats'),
     researchDir: join(root, 'research'),
     gateDir: join(root, 'gate'),
+    mockReviewDir: join(root, 'mock-review'),
     checkpointFile: join(root, 'research-checkpoint.json'),
   };
 }
@@ -83,6 +86,7 @@ export function ensureProjectDirectories(paths: ProjectPaths): void {
   mkdirSync(paths.chatsDir, { recursive: true });
   mkdirSync(paths.researchDir, { recursive: true });
   mkdirSync(paths.gateDir, { recursive: true });
+  mkdirSync(paths.mockReviewDir, { recursive: true });
 }
 
 /**

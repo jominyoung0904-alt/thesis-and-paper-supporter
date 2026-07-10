@@ -17,6 +17,9 @@ import type { SettingsScreenCallbacks } from './settings/SettingsScreen';
 import type { ChatScreenCallbacks } from './chat';
 import type { WritingCheckCallbacks } from './writing/WritingCheckScreen';
 import type { GateHistoryScreenCallbacks } from './writing/GateHistoryScreen';
+import type { PolishViewCallbacks } from './writing/PolishView';
+import type { MockReviewViewCallbacks } from './writing/MockReviewView';
+import type { WritingScreenCallbacks } from './writing/WritingScreen';
 import type {
   ChatHistoryListResult,
   ChatHistoryLoadResult,
@@ -83,6 +86,8 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
     },
 
     openLink: (url) => window.thesisApi.openExternal(url),
+
+    startResearchHandoff: (researchId) => window.thesisApi.startResearchHandoff(researchId),
   };
 }
 
@@ -175,6 +180,29 @@ export function createChatHistoryCallbacks(): ChatHistoryCallbacks {
     loadChatHistory: (id) => window.thesisApi.loadChatHistory(id),
     newChatHistory: () => window.thesisApi.newChatHistory(),
     removeChatHistory: (id) => window.thesisApi.removeChatHistory(id),
+  };
+}
+
+export function createPolishViewCallbacks(): PolishViewCallbacks {
+  return { runPolish: (text) => window.thesisApi.runPolish(text) };
+}
+
+export function createMockReviewViewCallbacks(): MockReviewViewCallbacks {
+  return {
+    runMockReview: (text) => window.thesisApi.runMockReview(text),
+    listMockReviewHistory: async () => (await window.thesisApi.listMockReviewHistory()).records,
+    getMockReviewRecord: (id) => window.thesisApi.getMockReviewRecord(id),
+    removeMockReviewRecord: async (id) => (await window.thesisApi.removeMockReviewRecord(id)).ok,
+  };
+}
+
+/** Assembles the four sub-view callback sets consumed by `WritingScreen` (T59, T62). */
+export function createWritingScreenCallbacks(): WritingScreenCallbacks {
+  return {
+    check: createWritingCheckCallbacks(),
+    polish: createPolishViewCallbacks(),
+    mockReview: createMockReviewViewCallbacks(),
+    history: createGateHistoryScreenCallbacks(),
   };
 }
 

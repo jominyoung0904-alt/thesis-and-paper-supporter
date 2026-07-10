@@ -28,9 +28,12 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { canSendMessage, canSwitchMode, chatReducer, createInitialChatState } from './chatUiLogic';
 import { mapIpcMessagesToChatMessages } from './chatHistoryLogic';
+import { startHandoffFromLatestResult } from './researchHandoffLogic';
 import type { ChatScreenProps } from './chatTypes';
-import { createChatHistoryCallbacks } from '../appCallbacks';
+import { createChatHistoryCallbacks, createResearchHistoryScreenCallbacks } from '../appCallbacks';
 import type { ChatHistoryLoadResult } from '../../shared/ipc-channels';
+import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
+import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -55,6 +58,10 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
   // this very session from the panel.
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [historyActionError, setHistoryActionError] = useState<string | null>(null);
+  // Short banner shown right after a "이 결과로 회의하기" handoff completes
+  // (FR-RSH-003, T51) — cleared on the next send/새 대화/session load so it
+  // never lingers past the moment it describes.
+  const [handoffPreview, setHandoffPreview] = useState<string | null>(null);
 
   // Auto-scroll to the latest content on new messages and on research
   // start/finish (active flips, or a result/error lands) — not on every
@@ -68,6 +75,7 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
     if (!canSendMessage(state) || text.length === 0) {
       return;
     }
+    setHandoffPreview(null);
 
     if (state.mode === 'research') {
       dispatch({ type: 'RESEARCH_START', id: makeId(), question: text, now: Date.now() });
@@ -125,6 +133,7 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
     setActiveSessionId(result.id);
     setHistoryOpen(false);
     setHistoryActionError(null);
+    setHandoffPreview(null);
   }
 
   // "＋ 새 대화" header button (FR-CHM-004). Clears the backend's active
@@ -132,6 +141,7 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
   // instead of appending to the one just left.
   async function handleNewChat(): Promise<void> {
     setHistoryActionError(null);
+    setHandoffPreview(null);
     try {
       await historyCallbacks.newChatHistory();
       dispatch({ type: 'NEW_CHAT_SESSION' });
@@ -140,6 +150,31 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
     } catch {
       setHistoryActionError('새 대화를 시작하지 못했어요. 다시 시도해 주세요.');
     }
+  }
+
+  // "이 결과로 회의하기" from a freshly finished research result (FR-RSH-003,
+  // T51): the result itself has no history id, so this resolves it from the
+  // most recently saved research-history entry — see `researchHandoffLogic.ts`.
+  async function handleStartHandoffFromLatestResult(): Promise<ResearchHandoffStartResult> {
+    if (!callbacks.startResearchHandoff) {
+      return { ok: false, reason: 'not_found' };
+    }
+    return startHandoffFromLatestResult(
+      () => createResearchHistoryScreenCallbacks().listResearchHistory(),
+      callbacks.startResearchHandoff,
+    );
+  }
+
+  // The main process already restored the ConversationManager and cleared
+  // the active-session tracker (see `researchHandoffHandlers.ts`) — the
+  // renderer only needs to load the injected turns and reset local session
+  // state, same as `handleNewChat`.
+  function handleHandoffComplete(messages: IpcChatMessage[], preview: string): void {
+    dispatch({ type: 'LOAD_HISTORY_SESSION', messages: mapIpcMessagesToChatMessages('handoff', messages) });
+    setActiveSessionId(null);
+    setHistoryOpen(false);
+    setHistoryActionError(null);
+    setHandoffPreview(preview);
   }
 
   // The currently-open session was deleted from the panel — the backend
@@ -171,6 +206,11 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
           {historyActionError}
         </p>
       )}
+      {handoffPreview && (
+        <p className="chat-handoff-preview" role="status">
+          {handoffPreview}
+        </p>
+      )}
       <ChatHistoryPanel
         open={historyOpen}
         callbacks={historyCallbacks}
@@ -181,7 +221,12 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
       />
       <div className="chat-scroll-area">
         <MessageList messages={state.messages} />
-        <ResearchProgress research={state.research} onOpenLink={callbacks.openLink} />
+        <ResearchProgress
+          research={state.research}
+          onOpenLink={callbacks.openLink}
+          onStartHandoff={callbacks.startResearchHandoff ? handleStartHandoffFromLatestResult : undefined}
+          onHandoffComplete={handleHandoffComplete}
+        />
         <DecisionConfirmCard
           card={state.decisionCard}
           onConfirm={handleConfirmDecision}

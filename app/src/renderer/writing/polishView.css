@@ -1,0 +1,106 @@
+/*
+ * Sentence-polishing view styling. Same large-text, high-contrast approach as
+ * `writingCheckScreen.css` / `qualityGateView.css` — the audience is
+ * non-technical grad students.
+ */
+
+.polish-view {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 18px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.polish-lead {
+  font-size: 18px;
+  margin: 0;
+}
+
+.polish-textarea {
+  font-size: 16px;
+  line-height: 1.6;
+  padding: 14px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  min-height: 220px;
+}
+
+.polish-btn {
+  font-size: 17px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.polish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.polish-btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.polish-error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.polish-status {
+  color: #444;
+  margin: 0;
+}
+
+.polish-result {
+  border-top: 2px solid #ddd;
+  padding-top: 16px;
+}
+
+.polish-result-title,
+.polish-changes-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.polish-result-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 0 0 20px 0;
+}
+
+.polish-changes-empty {
+  color: #666;
+  margin: 0;
+}
+
+.polish-changes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.polish-changes-table th,
+.polish-changes-table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.polish-changes-table th {
+  background: #f9fafb;
+}

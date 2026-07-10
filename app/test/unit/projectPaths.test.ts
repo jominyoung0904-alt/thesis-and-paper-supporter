@@ -70,6 +70,7 @@ describe('resolveProjectPaths', () => {
     expect(paths.chatsDir).toBe(join(paths.root, 'chats'));
     expect(paths.researchDir).toBe(join(paths.root, 'research'));
     expect(paths.gateDir).toBe(join(paths.root, 'gate'));
+    expect(paths.mockReviewDir).toBe(join(paths.root, 'mock-review'));
     expect(paths.checkpointFile).toBe(join(paths.root, 'research-checkpoint.json'));
   });
 
@@ -105,7 +106,7 @@ describe('ensureProjectDirectories', () => {
     rmSync(workDir, { recursive: true, force: true });
   });
 
-  it('creates root, chats/, research/, and gate/ directories when missing', () => {
+  it('creates root, chats/, research/, gate/, and mock-review/ directories when missing', () => {
     const paths = resolveProjectPaths(workDir, 'default');
 
     expect(existsSync(paths.root)).toBe(false);
@@ -116,6 +117,7 @@ describe('ensureProjectDirectories', () => {
     expect(existsSync(paths.chatsDir)).toBe(true);
     expect(existsSync(paths.researchDir)).toBe(true);
     expect(existsSync(paths.gateDir)).toBe(true);
+    expect(existsSync(paths.mockReviewDir)).toBe(true);
   });
 
   it('is idempotent when called repeatedly', () => {

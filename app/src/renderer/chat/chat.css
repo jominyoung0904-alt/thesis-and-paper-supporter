@@ -48,6 +48,18 @@
   font-size: 15px;
 }
 
+/* "이 결과로 회의하기" handoff success banner (Task T51, FR-RSH-003). */
+.chat-handoff-preview {
+  flex-shrink: 0;
+  background: #eff6ff;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #1d4ed8;
+  margin: -8px 0 0;
+  font-size: 15px;
+}
+
 /* Only this area scrolls — messages, research report, decision card. The
    mode toggle + textarea (`.chat-input-area`, a sibling below) never
    scrolls out of view (KakaoTalk-style always-visible input). */
