@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>처음이라면 꼭 읽어주세요</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel-bg: #f7f9fc;
+    --accent: #2b6cb0;
+    --accent-dark: #1a4e8a;
+    --text: #222831;
+    --sub-text: #4a5568;
+    --warn-bg: #fff8e1;
+    --warn-border: #f0c419;
+    --ok-bg: #eaf7ee;
+    --ok-border: #38a169;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.9;
+  }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 28px 80px 28px;
+  }
+
+  header.hero {
+    text-align: center;
+    padding: 20px 0 36px 0;
+    border-bottom: 3px solid var(--accent);
+    margin-bottom: 36px;
+  }
+
+  header.hero h1 {
+    font-size: 32px;
+    margin: 0 0 12px 0;
+    color: var(--accent-dark);
+  }
+
+  header.hero p {
+    font-size: 19px;
+    color: var(--sub-text);
+    margin: 0;
+  }
+
+  section {
+    margin-bottom: 44px;
+  }
+
+  .step-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .step-number {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .step-title h2 {
+    font-size: 25px;
+    margin: 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 16px 0;
+  }
+
+  .callout {
+    background: var(--panel-bg);
+    border-left: 6px solid var(--accent);
+    padding: 18px 22px;
+    border-radius: 6px;
+    margin: 18px 0;
+  }
+
+  .callout.warn {
+    background: var(--warn-bg);
+    border-left-color: var(--warn-border);
+  }
+
+  .callout.ok {
+    background: var(--ok-bg);
+    border-left-color: var(--ok-border);
+  }
+
+  .callout strong {
+    color: var(--accent-dark);
+  }
+
+  ul, ol {
+    padding-left: 26px;
+  }
+
+  li {
+    margin-bottom: 10px;
+  }
+
+  /* SmartScreen dialog mockup */
+  .smartscreen-frame {
+    border: 1px solid #a0a0a0;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    max-width: 460px;
+    margin: 28px auto;
+    overflow: hidden;
+    font-size: 15px;
+    background: #ffffff;
+  }
+
+  .smartscreen-titlebar {
+    background: #f0f0f0;
+    border-bottom: 1px solid #d0d0d0;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #555;
+  }
+
+  .smartscreen-body {
+    background: #ffffff;
+    padding: 0;
+  }
+
+  .smartscreen-blue {
+    background: #0067c0;
+    color: #ffffff;
+    padding: 20px 20px 16px 20px;
+  }
+
+  .smartscreen-blue .icon-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .smartscreen-blue .shield {
+    width: 34px;
+    height: 34px;
+    background: #ffcc00;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex: none;
+  }
+
+  .smartscreen-blue h3 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .smartscreen-blue p {
+    margin: 0;
+    font-size: 14px;
+    color: #dceaf7;
+  }
+
+  .smartscreen-detail {
+    padding: 16px 20px;
+    background: #ffffff;
+    color: #333;
+  }
+
+  .smartscreen-detail .appname {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .smartscreen-link {
+    color: #0067c0;
+    text-decoration: underline;
+    display: inline-block;
+    margin: 10px 0 18px 0;
+    position: relative;
+    font-weight: bold;
+  }
+
+  .badge-one {
+    position: absolute;
+    left: -34px;
+    top: -6px;
+    background: #d63031;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .smartscreen-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 20px 18px 20px;
+    background: #f6f6f6;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .btn {
+    padding: 8px 22px;
+    border-radius: 3px;
+    font-size: 14px;
+    border: 1px solid #999;
+    background: #e9e9e9;
+    color: #333;
+  }
+
+  .btn.run {
+    background: #0067c0;
+    color: #fff;
+    border-color: #0067c0;
+    position: relative;
+  }
+
+  .badge-two {
+    position: absolute;
+    right: -32px;
+    top: -10px;
+    background: #d63031;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .order-strip {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--accent-dark);
+    background: var(--panel-bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin: 20px 0;
+  }
+
+  footer {
+    margin-top: 50px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--sub-text);
+    border-top: 1px solid #e2e2e2;
+    padding-top: 20px;
+  }
+
+  code {
+    background: #eef1f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.95em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>처음이시라면, 여기부터 읽어주세요</h1>
+    <p>딱 3분만 투자하시면 프로그램을 안전하게 실행하실 수 있어요.</p>
+  </header>
+
+  <section id="intro">
+    <p>
+      안녕하세요! 이 프로그램은 논문을 쓰시는 대학원생 여러분이 자료 정리, 초안 작성, 참고문헌 관리 같은
+      번거로운 작업을 좀 더 수월하게 하실 수 있도록 도와드리는 도구예요. 컴퓨터를 잘 다루지 못하셔도
+      괜찮습니다. 아래 순서대로만 따라오시면 누구나 어렵지 않게 실행하실 수 있도록 만들었어요.
+      처음 실행하실 때 낯선 화면이 하나 나오는데, 아주 정상적인 과정이니 당황하지 않으셔도 됩니다.
+    </p>
+  </section>
+
+  <section id="step1">
+    <div class="step-title">
+      <div class="step-number">1</div>
+      <h2>압축 풀기부터 해주세요</h2>
+    </div>
+    <p>
+      다운로드하신 파일은 <code>.zip</code>(압축 파일)입니다. 압축 파일 안의 프로그램 아이콘을
+      더블클릭해서 바로 실행하면 오류가 나거나 이상하게 동작할 수 있어요. 압축된 상태 그대로는
+      프로그램이 자기 옆에 필요한 파일들을 제대로 찾지 못하기 때문이에요. 그래서 반드시
+      <strong>압축을 먼저 풀어주신 뒤</strong>, 풀린 폴더 안에서 실행 파일을 실행해 주셔야 해요.
+    </p>
+    <div class="callout">
+      <strong>압축 푸는 방법</strong> — 다운로드한 zip 파일에서 마우스 오른쪽 버튼을 누르고
+      <code>압축 풀기</code>(또는 <code>여기에 압축 풀기</code>)를 선택해 주세요.
+    </div>
+    <p>
+      <strong>압축을 풀 위치</strong>는 <code>문서</code> 폴더나 <code>C:\</code> 바로 아래처럼
+      경로가 짧고 접근이 쉬운 곳을 추천해 드려요. <strong>바탕화면은 가급적 피해주세요.</strong>
+      바탕화면은 OneDrive와 자동으로 동기화되는 경우가 많아서, 프로그램이 파일을 저장하거나
+      불러오는 도중에 동기화가 끼어들면 예기치 않은 오류가 생길 수 있거든요.
+    </p>
+  </section>
+
+  <section id="step2">
+    <div class="step-title">
+      <div class="step-number">2</div>
+      <h2>파란 경고창이 떠도 놀라지 마세요</h2>
+    </div>
+    <p>
+      압축을 푸신 폴더 안에서 프로그램을 처음 실행하면, 아래와 비슷하게 생긴
+      <strong>파란색 창</strong>이 뜰 수 있어요. Windows가 "이 프로그램이 낯설다"고 알려주는
+      화면인데, 실제로 위험해서 뜨는 게 아니라 <strong>이 프로그램이 아직 마이크로소프트의
+      정식 인증서를 받지 않은 개인 개발자의 프로그램</strong>이기 때문에 뜨는 안내창이에요.
+      바이러스나 악성 프로그램이라서 뜨는 것이 아니니 안심하셔도 괜찮습니다.
+    </p>
+
+    <div class="smartscreen-frame">
+      <div class="smartscreen-titlebar">Windows의 PC 보호</div>
+      <div class="smartscreen-body">
+        <div class="smartscreen-blue">
+          <div class="icon-row">
+            <div class="shield">🛡️</div>
+            <div>
+              <h3>Windows의 PC 보호</h3>
+            </div>
+          </div>
+          <p>인식할 수 없는 앱을 시작했습니다. 이 앱을 실행하면 PC가 위험해질 수 있습니다.</p>
+        </div>
+        <div class="smartscreen-detail">
+          <div class="appname">논문 작성 서포터.exe</div>
+          <div>게시자: 알 수 없음</div>
+          <a class="smartscreen-link">
+            <span class="badge-one">①</span>
+            추가 정보
+          </a>
+        </div>
+        <div class="smartscreen-buttons">
+          <span class="btn">실행하지 않음</span>
+          <span class="btn run">
+            <span class="badge-two">②</span>
+            실행
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-strip">
+      ① &lsquo;추가 정보&rsquo; 클릭 → ② &lsquo;실행&rsquo; 클릭
+    </div>
+
+    <p>
+      순서가 중요해요. 처음 창에는 <code>실행</code> 버튼이 보이지 않고 <code>실행하지 않음</code>만
+      보일 수 있는데, 그럴 때는 먼저 <strong>"추가 정보"</strong> 글자를 눌러주세요. 그러면 창이
+      조금 바뀌면서 <strong>"실행"</strong> 버튼이 새로 나타나요. 그 버튼을 눌러주시면 프로그램이
+      정상적으로 시작됩니다.
+    </p>
+  </section>
+
+  <section id="antivirus">
+    <div class="callout warn">
+      <strong>백신 프로그램이 검사한다고 하면?</strong><br>
+      가끔 백신 프로그램이 이 프로그램을 검사하겠다고 하거나, 일시적으로 의심스러운 파일로
+      분류할 수 있어요. 이런 개인 개발 프로그램은 사용자가 아직 많지 않아서 백신 회사의
+      데이터베이스에 등록되지 않았기 때문에 생기는 <strong>오탐(잘못된 탐지)</strong>일 가능성이
+      높아요. 실제 악성 코드가 아니라도 신규 프로그램에는 흔히 있는 일이니 너무 걱정하지 않으셔도
+      됩니다.
+    </div>
+  </section>
+
+  <section id="step3">
+    <div class="step-title">
+      <div class="step-number">3</div>
+      <h2>실행하면 이런 화면이 떠요</h2>
+    </div>
+    <p>
+      프로그램을 처음 실행하시면 간단한 <strong>설정 마법사</strong> 화면이 나와요. 여기서는
+      이런 것들을 안내해 드릴 거예요.
+    </p>
+    <ul>
+      <li>작성하실 논문 자료를 저장할 폴더를 지정하는 단계</li>
+      <li>기본적인 사용 환경(글자 크기, 저장 방식 등)을 간단히 선택하는 단계</li>
+      <li>바로 첫 문서를 만들어보는 간단한 안내</li>
+    </ul>
+    <p>어렵게 느껴지실 수 있는 부분은 없고, 화면에 나오는 안내를 따라 다음 버튼만 눌러주시면 돼요.</p>
+  </section>
+
+  <section id="trouble">
+    <div class="callout ok">
+      <strong>혹시 문제가 생기면</strong><br>
+      압축을 푼 폴더를 통째로 삭제하고, 원래의 zip 파일에서 다시 압축을 풀어주시면 프로그램이
+      처음 상태로 완전히 초기화돼요. 무엇을 잘못 누르시든, 설정이 꼬이든 이 방법으로 항상
+      되돌릴 수 있으니 마음 편히 사용해 보세요.
+    </div>
+  </section>
+
+  <footer>
+    막히는 부분이 있으시면 언제든 문의해 주세요. 논문 작성, 화이팅입니다!
+  </footer>
+
+</div>
+</body>
+</html>
