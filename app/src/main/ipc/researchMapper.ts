@@ -18,6 +18,8 @@ export function mapDeepResearchResult(result: DeepResearchResult): ResearchRunRe
   return {
     report: result.report,
     papers: result.papers.map(mapPaper),
+    citedPapers: result.citedPapers.map(mapPaper),
+    relatedPapers: result.relatedPapers.map(mapPaper),
     failedSources: result.failedSources.map(mapFailedSource),
   };
 }

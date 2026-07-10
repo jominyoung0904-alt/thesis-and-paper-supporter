@@ -113,7 +113,12 @@ export interface ResearchFailedSourcePayload {
 
 export interface ResearchRunResult {
   report: string;
+  /** Every screened paper (high/medium/low). Kept for backward compatibility. */
   papers: ResearchPaperPayload[];
+  /** Papers actually cited in `report`'s body; array position (+1) is the `[n]` shown in text. */
+  citedPapers: ResearchPaperPayload[];
+  /** Medium-relevance papers never cited in `report`, capped at 8. */
+  relatedPapers: ResearchPaperPayload[];
   failedSources: ResearchFailedSourcePayload[];
 }
 

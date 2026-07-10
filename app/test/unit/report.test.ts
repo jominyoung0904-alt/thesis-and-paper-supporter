@@ -37,7 +37,7 @@ describe('assembleReport — RISS deep-link fallback (SPEC-TSA-001 후속 T33)',
     const screened: ScreenedPaper[] = [{ paper: paper({ title: '논문' }), relevance: 'high' }];
     const participatingSources: AcademicSource[] = ['kci', 'semanticscholar'];
 
-    const report = await assembleReport(
+    const { report } = await assembleReport(
       'q',
       screened,
       [],
@@ -58,7 +58,7 @@ describe('assembleReport — RISS deep-link fallback (SPEC-TSA-001 후속 T33)',
     const screened: ScreenedPaper[] = [{ paper: paper({ title: '논문' }), relevance: 'high' }];
     const participatingSources: AcademicSource[] = ['kci', 'naverdoc'];
 
-    const report = await assembleReport(
+    const { report } = await assembleReport(
       'q',
       screened,
       [],
@@ -76,15 +76,45 @@ describe('assembleReport — RISS deep-link fallback (SPEC-TSA-001 후속 T33)',
   it('omits the RISS deep link when the first Korean query term is empty', async () => {
     const screened: ScreenedPaper[] = [{ paper: paper({ title: '논문' }), relevance: 'high' }];
 
-    const report = await assembleReport('q', screened, [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], '   ');
+    const { report } = await assembleReport('q', screened, [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], '   ');
 
     expect(report).not.toContain('RISS에서 직접 검색해 보실 수 있어요');
   });
 
   it('still appends the RISS deep link on the "no papers found" branch when naverdoc did not participate', async () => {
-    const report = await assembleReport('q', [], [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], '국문검색어');
+    const { report } = await assembleReport('q', [], [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], '국문검색어');
 
     expect(report).toContain('문헌을 찾지 못했습니다'); // sanity: still the no-papers branch
     expect(report).toContain('RISS에서 직접 검색해 보실 수 있어요');
+  });
+});
+
+describe('assembleReport — structured citedPapers/relatedPapers (실사용 피드백 #5/#6)', () => {
+  it('no longer emits a "## 참고문헌" text section in the report body', async () => {
+    const screened: ScreenedPaper[] = [{ paper: paper({ title: '논문' }), relevance: 'high' }];
+
+    const { report } = await assembleReport('q', screened, [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], 'q');
+
+    expect(report).not.toContain('## 참고문헌');
+  });
+
+  it('returns an empty citedPapers/relatedPapers pair on the "no papers found" branch', async () => {
+    const result = await assembleReport('q', [], [], MEMORY, fixedLlm(), 'm', createUsage(), ['kci'], 'q');
+
+    expect(result.citedPapers).toEqual([]);
+    expect(result.relatedPapers).toEqual([]);
+  });
+
+  it('citedPapers is empty and relatedPapers holds every medium paper when nothing gets cited', async () => {
+    const screened: ScreenedPaper[] = [
+      { paper: paper({ title: '중간1' }), relevance: 'medium' },
+      { paper: paper({ title: '중간2' }), relevance: 'medium' },
+    ];
+    const llm = fixedLlm('아무 인용도 하지 않은 요약입니다.');
+
+    const result = await assembleReport('q', screened, [], MEMORY, llm, 'm', createUsage(), ['kci'], 'q');
+
+    expect(result.citedPapers).toEqual([]);
+    expect(result.relatedPapers).toHaveLength(2);
   });
 });

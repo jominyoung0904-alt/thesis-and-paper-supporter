@@ -29,11 +29,28 @@ function ProgressBar({ stage }: { stage: string | null }): JSX.Element {
   );
 }
 
-function PaperRow({ paper, onOpenLink }: { paper: ResearchPaperView; onOpenLink(url: string): void }): JSX.Element {
-  const authors = paper.authors.length > 0 ? paper.authors.join(', ') : '저자 정보 없음';
+/**
+ * One reference line: `[n] 저자 (연도). 제목. 출처` where the title is a
+ * clickable link (falls back to plain text when there's no URL). `number`
+ * is `null` for the unnumbered "관련이 있을 수 있는 문헌" section.
+ */
+function ReferenceRow({
+  number,
+  paper,
+  onOpenLink,
+}: {
+  number: number | null;
+  paper: ResearchPaperView;
+  onOpenLink(url: string): void;
+}): JSX.Element {
+  const authors = paper.authors.length > 0 ? paper.authors.join(', ') : '저자 미상';
   const year = paper.year ?? '연도 미상';
   return (
-    <li className="research-paper-row">
+    <li className="research-ref-row">
+      {number !== null && <span className="research-ref-number">[{number}] </span>}
+      <span className="research-ref-meta">
+        {authors} ({year}).{' '}
+      </span>
       {paper.url ? (
         <button type="button" className="research-paper-title-link" onClick={() => onOpenLink(paper.url as string)}>
           {paper.title}
@@ -41,9 +58,7 @@ function PaperRow({ paper, onOpenLink }: { paper: ResearchPaperView; onOpenLink(
       ) : (
         <span className="research-paper-title">{paper.title}</span>
       )}
-      <span className="research-paper-meta">
-        {authors} · {year} · {paper.source}
-      </span>
+      <span className="research-ref-source">. {paper.source}</span>
     </li>
   );
 }
@@ -96,12 +111,25 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
         <div className="research-result">
           <FailedSourceBanner failedSources={research.result.failedSources} />
           <ReportBody report={research.result.report} />
-          {research.result.papers.length > 0 && (
-            <ul className="research-paper-list">
-              {research.result.papers.map((paper, index) => (
-                <PaperRow key={index} paper={paper} onOpenLink={onOpenLink} />
-              ))}
-            </ul>
+          {research.result.citedPapers.length > 0 && (
+            <div className="research-references">
+              <h4>참고문헌</h4>
+              <ul className="research-ref-list">
+                {research.result.citedPapers.map((paper, index) => (
+                  <ReferenceRow key={index} number={index + 1} paper={paper} onOpenLink={onOpenLink} />
+                ))}
+              </ul>
+            </div>
+          )}
+          {research.result.relatedPapers.length > 0 && (
+            <div className="research-related">
+              <h4>관련이 있을 수 있는 문헌</h4>
+              <ul className="research-ref-list">
+                {research.result.relatedPapers.map((paper, index) => (
+                  <ReferenceRow key={index} number={null} paper={paper} onOpenLink={onOpenLink} />
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}

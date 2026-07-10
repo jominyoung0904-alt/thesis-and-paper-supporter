@@ -3,11 +3,19 @@
  *
  * FR-RES-005 is the hard constraint here: the LLM is handed a numbered paper
  * list and asked to write prose that cites ONLY as [1], [2], .... The
- * bibliography is then built deterministically by this module from
+ * reference set is built deterministically by this module from
  * `PaperMetadata` — the model never authors a citation string. Any [n] the
- * model emits that is out of range is stripped from the body before the
- * deterministic reference list and the fixed access-guidance / failed-source
- * paragraphs are appended.
+ * model emits that is out of range is stripped from the body.
+ *
+ * User-feedback follow-up (SPEC-TSA-001 후속, 실사용 피드백 6종): the report
+ * string no longer carries a trailing "## 참고문헌" text section — the
+ * renderer now shows references as clickable inline links, built from the
+ * structured `citedPapers`/`relatedPapers` this module returns alongside the
+ * report text. `citedPapers` is renumbered to a contiguous 1..N sequence in
+ * citation order (order of first `[n]` appearance in the body), so its array
+ * position is always 1:1 with the `[n]` the reader sees in the body text.
+ * `relatedPapers` surfaces medium-relevance candidates the model never
+ * actually cited (capped at 8), so the user can still see them.
  *
  * RISS deep-link fallback (SPEC-TSA-001 후속 T33): when the `naverdoc`
  * source (theses/dissertations/reports) did not participate in this run's
@@ -33,15 +41,28 @@ const NO_PAPERS_MESSAGE =
 /** RISS's plain search-result deep link; only the free-text `query` param is filled in. */
 const RISS_SEARCH_BASE_URL = 'https://www.riss.kr/search/Search.do?queryText=&query=';
 
+/** Max uncited medium-relevance papers surfaced in the "관련이 있을 수 있는 문헌" section. */
+const RELATED_PAPERS_LIMIT = 8;
+
 const TASK_INSTRUCTION =
   '아래 번호가 매겨진 논문 목록만을 근거로 사용자의 연구 질문에 대한 선행연구 종합 리포트를 한국어로 작성하라. ' +
   '본문에서 논문을 인용할 때는 반드시 [1], [2] 같은 대괄호 번호 형식만 사용하라. ' +
   '저자명, 연도, 제목 같은 서지정보를 직접 쓰지 마라. 목록에 없는 번호는 인용하지 마라. ' +
   '참고문헌 목록은 시스템이 자동으로 붙이므로 작성하지 마라.';
 
+/** Result of {@link assembleReport}: the report body plus the structured reference sets. */
+export interface AssembledReport {
+  report: string;
+  /** Papers actually cited in the body, renumbered so index+1 === the `[n]` shown in text. */
+  citedPapers: ScreenedPaper[];
+  /** Medium-relevance candidates the model never cited, capped at {@link RELATED_PAPERS_LIMIT}. */
+  relatedPapers: ScreenedPaper[];
+}
+
 /**
- * Assembles the final Markdown report. `screened` is filtered to high/medium
- * relevance papers, which become the numbered reference set. Never throws.
+ * Assembles the final Markdown report body plus the cited/related reference
+ * sets. `screened` is filtered to high/medium relevance papers, which become
+ * the numbered candidate set handed to the LLM. Never throws.
  */
 export async function assembleReport(
   question: string,
@@ -53,28 +74,32 @@ export async function assembleReport(
   usage: UsageTotals,
   participatingSources: AcademicSource[],
   firstKoQuery: string,
-): Promise<string> {
-  const cited = selectCitedPapers(screened);
+): Promise<AssembledReport> {
+  const candidates = selectCandidates(screened);
   const rissParagraph = buildRissDeepLinkParagraph(participatingSources, firstKoQuery);
 
-  if (cited.length === 0) {
-    return [NO_PAPERS_MESSAGE, ACCESS_GUIDANCE, buildFailedSourcesParagraph(failedSources), rissParagraph]
+  if (candidates.length === 0) {
+    const report = [NO_PAPERS_MESSAGE, ACCESS_GUIDANCE, buildFailedSourcesParagraph(failedSources), rissParagraph]
       .filter((section) => section.length > 0)
       .join('\n\n');
+    return { report, citedPapers: [], relatedPapers: [] };
   }
 
   const system = buildSystemPrompt(memory, TASK_INSTRUCTION);
-  const userContent = `연구 질문: ${question}\n\n논문 목록:\n${renderNumberedList(cited)}`;
+  const userContent = `연구 질문: ${question}\n\n논문 목록:\n${renderNumberedList(candidates.map((c) => c.paper))}`;
   const response = await llm.chat({ model, system, messages: [{ role: 'user', content: userContent }] });
   addUsage(usage, response);
 
-  const body = stripInvalidCitations(response.text, cited.length);
-  const references = buildReferences(cited);
+  const strippedBody = stripInvalidCitations(response.text, candidates.length);
+  const { body, citedPapers } = renumberCitations(strippedBody, candidates);
+  const relatedPapers = selectRelatedPapers(candidates, citedPapers);
   const failedParagraph = buildFailedSourcesParagraph(failedSources);
 
-  return [body, references, ACCESS_GUIDANCE, failedParagraph, rissParagraph]
+  const report = [body, ACCESS_GUIDANCE, failedParagraph, rissParagraph]
     .filter((section) => section.length > 0)
     .join('\n\n');
+
+  return { report, citedPapers, relatedPapers };
 }
 
 /**
@@ -94,10 +119,10 @@ function buildRissDeepLinkParagraph(participatingSources: AcademicSource[], firs
   return `학위논문은 RISS에서 직접 검색해 보실 수 있어요: ${link}`;
 }
 
-/** Keeps high/medium papers, high first, preserving relative order within each tier. */
-function selectCitedPapers(screened: ScreenedPaper[]): PaperMetadata[] {
-  const high = screened.filter((item) => item.relevance === 'high').map((item) => item.paper);
-  const medium = screened.filter((item) => item.relevance === 'medium').map((item) => item.paper);
+/** Keeps high/medium papers as candidates, high first, preserving relative order within each tier. */
+function selectCandidates(screened: ScreenedPaper[]): ScreenedPaper[] {
+  const high = screened.filter((item) => item.relevance === 'high');
+  const medium = screened.filter((item) => item.relevance === 'medium');
   return [...high, ...medium];
 }
 
@@ -124,22 +149,48 @@ function stripInvalidCitations(text: string, count: number): string {
 }
 
 /**
- * Builds the deterministic reference list purely from {@link PaperMetadata}.
- * This is the only place bibliographic strings are produced (FR-RES-005), so
- * an LLM can never inject a fabricated citation into the final report.
+ * Finds every valid `[n]` citation in `text` (already stripped of
+ * out-of-range numbers) and renumbers them to a contiguous 1..N sequence in
+ * order of first appearance. Returns the rewritten body plus the
+ * corresponding subset of `candidates`, in that same order — so
+ * `citedPapers[i]` is always what `[i + 1]` refers to in the returned body.
  */
-function buildReferences(papers: PaperMetadata[]): string {
-  const lines = papers.map((paper, index) => `[${index + 1}] ${formatReference(paper)}`);
-  return `## 참고문헌\n${lines.join('\n')}`;
+function renumberCitations(
+  text: string,
+  candidates: ScreenedPaper[],
+): { body: string; citedPapers: ScreenedPaper[] } {
+  const usedOrder: number[] = [];
+  const seen = new Set<number>();
+  for (const match of text.matchAll(/\[(\d+)\]/g)) {
+    const n = Number.parseInt(match[1] ?? '', 10);
+    if (!seen.has(n)) {
+      seen.add(n);
+      usedOrder.push(n);
+    }
+  }
+
+  const citedPapers = usedOrder.map((n) => candidates[n - 1]).filter((c): c is ScreenedPaper => c !== undefined);
+
+  const renumberMap = new Map<number, number>();
+  usedOrder.forEach((originalN, index) => {
+    if (candidates[originalN - 1] !== undefined) {
+      renumberMap.set(originalN, index + 1);
+    }
+  });
+
+  const body = text.replace(/\[(\d+)\]/g, (match, digits: string) => {
+    const n = Number.parseInt(digits, 10);
+    const newN = renumberMap.get(n);
+    return newN !== undefined ? `[${newN}]` : match;
+  });
+
+  return { body, citedPapers };
 }
 
-/** Formats one reference entry: authors (year). title. source. URL. */
-function formatReference(paper: PaperMetadata): string {
-  const authors = paper.authors.length > 0 ? paper.authors.join(', ') : '저자 미상';
-  const year = paper.year ?? 'n.d.';
-  const sourceLabel = paper.venue ?? SOURCE_LABELS[paper.source];
-  const link = paper.url ?? '링크 없음';
-  return `${authors} (${year}). ${paper.title}. ${sourceLabel}. ${link}`;
+/** Medium-relevance candidates never cited in the body, capped at {@link RELATED_PAPERS_LIMIT}. */
+function selectRelatedPapers(candidates: ScreenedPaper[], citedPapers: ScreenedPaper[]): ScreenedPaper[] {
+  const citedSet = new Set(citedPapers);
+  return candidates.filter((item) => item.relevance === 'medium' && !citedSet.has(item)).slice(0, RELATED_PAPERS_LIMIT);
 }
 
 /**

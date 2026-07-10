@@ -108,8 +108,16 @@ describe('S2 — 무료 모드 딥리서치 완주 (rate-limited mock adapter + 
       expect(screened.paper.authors).toEqual(source?.authors);
     }
 
-    expect(result.report).toContain('## 참고문헌');
+    expect(result.report).not.toContain('## 참고문헌');
     expect(result.report).toContain(ACCESS_GUIDANCE);
+    // Structured citedPapers replaces the old text bibliography (실사용 피드백 #5):
+    // the mock report cites [1][2][3], so exactly those 3 candidates should be cited,
+    // each still traceable 1:1 back to a real PaperMetadata fixture.
+    expect(result.citedPapers.length).toBeGreaterThan(0);
+    for (const screened of result.citedPapers) {
+      const source = allMockPapers.find((p) => p.externalId === screened.paper.externalId);
+      expect(source, `no PaperMetadata fixture matches externalId ${screened.paper.externalId}`).toBeDefined();
+    }
     expect(result.usage.calls).toBe(calls.length);
     expect(result.usage.calls).toBeGreaterThan(0);
     expect(result.usage.inputTokens).toBeGreaterThan(0);

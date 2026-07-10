@@ -257,14 +257,65 @@ describe('SemanticScholarClient', () => {
     await expect(client.search('q')).resolves.toEqual(expect.objectContaining({ ok: false, reason: 'network' }));
   });
 
-  it('maps HTTP 429 to reason:rate-limit', async () => {
+  it('maps HTTP 429 to reason:rate-limit after the single retry also fails', async () => {
     const fetchFn = vi.fn().mockResolvedValue(stubResponse({ ok: false, status: 429 }));
-    const client = new SemanticScholarClient({ baseUrl: BASE_URL, fetchFn: fetchFn as unknown as FetchFn });
+    const sleepFn = vi.fn().mockResolvedValue(undefined);
+    const client = new SemanticScholarClient({
+      baseUrl: BASE_URL,
+      fetchFn: fetchFn as unknown as FetchFn,
+      sleepFn,
+    });
 
     const result = await client.search('q');
 
     expectFailure(result);
     expect(result.reason).toBe('rate-limit');
+    // One retry: two fetches, one sleep in between.
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(sleepFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries exactly once on 429 and succeeds if the retry returns a good response', async () => {
+    const okBody = { data: [{ paperId: 'abc', title: 'Retried Paper' }] };
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(stubResponse({ ok: false, status: 429 }))
+      .mockResolvedValueOnce(stubResponse({ ok: true, json: okBody }));
+    const sleepFn = vi.fn().mockResolvedValue(undefined);
+    const client = new SemanticScholarClient({
+      baseUrl: BASE_URL,
+      fetchFn: fetchFn as unknown as FetchFn,
+      sleepFn,
+    });
+
+    const result = await client.search('q');
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.papers[0]?.title).toBe('Retried Paper');
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(sleepFn).toHaveBeenCalledWith(2000); // no Retry-After header -> 2s default
+  });
+
+  it('honors the Retry-After header (seconds) when present on a 429', async () => {
+    const response = stubResponse({ ok: false, status: 429 });
+    (response as unknown as { headers: { get(name: string): string | null } }).headers = {
+      get: (name: string) => (name.toLowerCase() === 'retry-after' ? '5' : null),
+    };
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(stubResponse({ ok: false, status: 429 }));
+    const sleepFn = vi.fn().mockResolvedValue(undefined);
+    const client = new SemanticScholarClient({
+      baseUrl: BASE_URL,
+      fetchFn: fetchFn as unknown as FetchFn,
+      sleepFn,
+    });
+
+    const result = await client.search('q');
+
+    expectFailure(result);
+    expect(sleepFn).toHaveBeenCalledWith(5000);
   });
 
   it('returns reason:timeout when the request does not settle before the timeout', async () => {

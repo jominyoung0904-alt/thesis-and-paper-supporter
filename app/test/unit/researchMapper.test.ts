@@ -23,6 +23,8 @@ function result(overrides: Partial<DeepResearchResult> = {}): DeepResearchResult
   return {
     report: '리포트 본문',
     papers: [],
+    citedPapers: [],
+    relatedPapers: [],
     queries: { ko: [], en: [] },
     failedSources: [],
     usage: createUsage(),
@@ -41,6 +43,22 @@ describe('mapDeepResearchResult', () => {
     ]);
   });
 
+  it('maps citedPapers and relatedPapers the same way as papers, preserving array order', () => {
+    const mapped = mapDeepResearchResult(
+      result({
+        citedPapers: [{ paper: paper({ title: '인용 논문' }), relevance: 'high' }],
+        relatedPapers: [{ paper: paper({ title: '관련 논문' }), relevance: 'medium' }],
+      }),
+    );
+
+    expect(mapped.citedPapers).toEqual([
+      { title: '인용 논문', authors: ['홍길동'], year: 2024, url: 'https://example.com/paper', source: 'KCI' },
+    ]);
+    expect(mapped.relatedPapers).toEqual([
+      { title: '관련 논문', authors: ['홍길동'], year: 2024, url: 'https://example.com/paper', source: 'KCI' },
+    ]);
+  });
+
   it('maps a failed source into Korean source + reason labels', () => {
     const mapped = mapDeepResearchResult(result({ failedSources: [{ source: 'kci', reason: 'timeout' }] }));
 
@@ -50,7 +68,7 @@ describe('mapDeepResearchResult', () => {
   it('drops usage/queries and passes the report text through unchanged', () => {
     const mapped = mapDeepResearchResult(result({ report: '## 결과\n내용' }));
 
-    expect(mapped).toEqual({ report: '## 결과\n내용', papers: [], failedSources: [] });
+    expect(mapped).toEqual({ report: '## 결과\n내용', papers: [], citedPapers: [], relatedPapers: [], failedSources: [] });
     expect(mapped).not.toHaveProperty('usage');
     expect(mapped).not.toHaveProperty('queries');
   });

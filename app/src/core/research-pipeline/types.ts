@@ -74,7 +74,12 @@ export interface DeepResearchInput {
 /** The full result of a deep-research run. */
 export interface DeepResearchResult {
   report: string;
+  /** Every screened paper (high/medium/low), unchanged since before the T34 report restructure. */
   papers: ScreenedPaper[];
+  /** Papers actually cited in `report`'s body, renumbered so index+1 === the `[n]` shown in text. */
+  citedPapers: ScreenedPaper[];
+  /** Medium-relevance papers the report never cited, capped at 8 (see `report.ts`). */
+  relatedPapers: ScreenedPaper[];
   queries: GeneratedQueries;
   failedSources: FailedSource[];
   usage: UsageTotals;

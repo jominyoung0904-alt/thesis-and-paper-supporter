@@ -7,7 +7,7 @@
  * reported transparently rather than aborting the run.
  */
 
-import type { AcademicClient, PaperMetadata } from '../academic-api/types';
+import type { AcademicClient, PaperMetadata, SearchResult } from '../academic-api/types';
 import { generateQueries } from './queryGen';
 import { assembleReport } from './report';
 import { screenPapers } from './screening';
@@ -59,11 +59,11 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
       ? await screenPapers(input.question, deduped, input.memory, screeningLlm, screeningModel, usage)
       : [];
 
-  // @AX:NOTE: [AUTO] report assembly is deterministic — bibliography is built from PaperMetadata only, never LLM-authored. Related: FR-RES-005
+  // @AX:NOTE: [AUTO] report assembly is deterministic — references are built from PaperMetadata only, never LLM-authored. Related: FR-RES-005
   // (e) Deterministic report assembly.
   emit('report');
   const participatingSources = input.clients.map((client) => client.source);
-  const report = await assembleReport(
+  const assembled = await assembleReport(
     input.question,
     screened,
     failedSources,
@@ -75,14 +75,26 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     queries.ko[0] ?? input.question,
   );
 
-  return { report, papers: screened, queries, failedSources, usage };
+  return {
+    report: assembled.report,
+    papers: screened,
+    citedPapers: assembled.citedPapers,
+    relatedPapers: assembled.relatedPapers,
+    queries,
+    failedSources,
+    usage,
+  };
 }
 
 /**
- * Fans out every client across its language-appropriate search terms in
- * parallel. A source is recorded in `failedSources` only when it produced no
- * papers AND at least one of its lookups failed — an empty-but-successful
- * response is simply fewer papers, not a failure.
+ * Fans out across clients in parallel, but each individual client's own
+ * search terms run sequentially (one request at a time per client) —
+ * user-feedback follow-up to ease Semantic Scholar's per-key rate limit,
+ * which is much more likely to trip when the same client fires two lookups
+ * at once than when two *different* clients do.  A source is recorded in
+ * `failedSources` only when it produced no papers AND at least one of its
+ * lookups failed — an empty-but-successful response is simply fewer papers,
+ * not a failure.
  */
 async function runSearches(clients: AcademicClient[], queries: GeneratedQueries): Promise<SearchOutcome> {
   const perClient = await Promise.all(clients.map((client) => searchOneClient(client, queries)));
@@ -101,10 +113,17 @@ interface ClientOutcome {
   failed?: FailedSource;
 }
 
-/** Runs one client across all its terms and folds the results/failure. */
+/**
+ * Runs one client across all its terms *sequentially* (not `Promise.all`)
+ * and folds the results/failure. Order-preserving, so `recordingClient`-style
+ * tests still see terms logged in list order.
+ */
 async function searchOneClient(client: AcademicClient, queries: GeneratedQueries): Promise<ClientOutcome> {
   const terms = termsForSource(client, queries);
-  const results = await Promise.all(terms.map((term) => client.search(term, { limit: SEARCH_LIMIT })));
+  const results: SearchResult[] = [];
+  for (const term of terms) {
+    results.push(await client.search(term, { limit: SEARCH_LIMIT }));
+  }
 
   const papers: PaperMetadata[] = [];
   let firstFailureReason: FailedSource['reason'] | undefined;

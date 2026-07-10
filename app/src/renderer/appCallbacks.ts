@@ -35,15 +35,18 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
       const result = await window.thesisApi.runResearch(question, (event) => {
         onProgress({ stage: event.stage, detail: event.detail });
       });
+      const mapPaper = (paper: (typeof result.papers)[number]) => ({
+        title: paper.title,
+        authors: paper.authors,
+        year: paper.year,
+        url: paper.url,
+        source: paper.source,
+      });
       return {
         report: result.report,
-        papers: result.papers.map((paper) => ({
-          title: paper.title,
-          authors: paper.authors,
-          year: paper.year,
-          url: paper.url,
-          source: paper.source,
-        })),
+        papers: result.papers.map(mapPaper),
+        citedPapers: result.citedPapers.map(mapPaper),
+        relatedPapers: result.relatedPapers.map(mapPaper),
         failedSources: result.failedSources.map((failed) => ({
           source: failed.source,
           reason: failed.reason,

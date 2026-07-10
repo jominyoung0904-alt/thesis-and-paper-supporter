@@ -64,7 +64,12 @@ export interface ResearchFailedSourceView {
 /** Trimmed view of `DeepResearchResult` this screen actually renders. */
 export interface ResearchView {
   report: string;
+  /** Every screened paper (high/medium/low). Kept for backward compatibility. */
   papers: ResearchPaperView[];
+  /** Papers actually cited in `report`'s body; array position (+1) is the `[n]` shown in text. */
+  citedPapers: ResearchPaperView[];
+  /** Medium-relevance papers never cited in `report`, capped at 8 — "관련이 있을 수 있는 문헌". */
+  relatedPapers: ResearchPaperView[];
   failedSources: ResearchFailedSourceView[];
 }
 

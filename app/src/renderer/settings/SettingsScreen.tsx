@@ -142,7 +142,7 @@ export function SettingsScreen({ callbacks }: SettingsScreenProps): JSX.Element 
               )}
 
               {card.steps && card.steps.length > 0 && (
-                <details className="settings-card-steps">
+                <details className="settings-card-steps" open>
                   <summary>발급 방법 보기</summary>
                   <ol>
                     {card.steps.map((step) => (

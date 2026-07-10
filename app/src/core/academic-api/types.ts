@@ -63,6 +63,12 @@ export interface AcademicClientOptions {
   mockMode?: boolean;
   /** Request timeout in ms. Defaults to {@link DEFAULT_TIMEOUT_MS}. */
   timeoutMs?: number;
+  /**
+   * Injectable delay function used by clients that retry after a 429
+   * (currently `SemanticScholarClient` only). Defaults to a real
+   * `setTimeout`-based sleep; tests inject a fast/no-op stand-in.
+   */
+  sleepFn?: (ms: number) => Promise<void>;
 }
 
 export const DEFAULT_TIMEOUT_MS = 15000;

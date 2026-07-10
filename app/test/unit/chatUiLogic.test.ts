@@ -141,7 +141,7 @@ describe('research run lifecycle', () => {
   });
 
   it('RESEARCH_SUCCESS stores the result and clears active', () => {
-    const result = { report: '요약', papers: [], failedSources: [] };
+    const result = { report: '요약', papers: [], citedPapers: [], relatedPapers: [], failedSources: [] };
     let state = chatReducer(
       { ...createInitialChatState(), mode: 'research' },
       { type: 'RESEARCH_START', id: 'r1', question: 'q', now: 1 },

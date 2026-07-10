@@ -15,6 +15,9 @@ export function createMainWindow(): BrowserWindow {
     width: 1200,
     height: 800,
     title: '논문 작성 서포터',
+    // Hides the default English menu bar (File/Edit/View/...) by default —
+    // non-technical users found it confusing; Alt still reveals it on demand.
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

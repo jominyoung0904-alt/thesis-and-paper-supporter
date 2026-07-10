@@ -107,8 +107,11 @@ describe('runDeepResearch', () => {
     expect(result.queries.en).toHaveLength(2);
     expect(result.papers).toHaveLength(1);
     expect(result.papers[0]?.relevance).toBe('high');
-    expect(result.report).toContain('## 참고문헌');
+    expect(result.report).not.toContain('## 참고문헌');
     expect(result.report).toContain(ACCESS_GUIDANCE);
+    expect(result.citedPapers).toHaveLength(1);
+    expect(result.citedPapers[0]?.paper.title).toBe('메타인지 학습 전략 연구');
+    expect(result.relatedPapers).toEqual([]);
     expect(result.failedSources).toEqual([]);
   });
 
@@ -172,7 +175,7 @@ describe('runDeepResearch', () => {
     expect(result.papers.every((p) => p.relevance === 'medium')).toBe(true);
   });
 
-  it('builds references deterministically from PaperMetadata, never from LLM-authored bibliography (FR-RES-005)', async () => {
+  it('builds the cited-papers list deterministically from PaperMetadata, never from LLM-authored bibliography (FR-RES-005)', async () => {
     const realPaper = paper({ title: '진짜 논문 제목', authors: ['김철수', '이영희'], year: 2022, venue: '한국정보과학회', url: 'https://real.example/paper/42' });
     // The model fabricates a bibliography and cites it — none of this may leak.
     const { adapter } = makeLlm({ report: () => '요약입니다 [1]. 가짜저자(3000). 존재하지않는논문.' });
@@ -180,12 +183,19 @@ describe('runDeepResearch', () => {
 
     const result = await run({ llm: adapter, clients });
 
-    // The deterministic guarantee is the reference LIST: it is built only from
-    // PaperMetadata, so no LLM-authored bibliography can appear there.
-    const refSection = result.report.slice(result.report.indexOf('## 참고문헌'));
-    expect(refSection).toContain('[1] 김철수, 이영희 (2022). 진짜 논문 제목. 한국정보과학회. https://real.example/paper/42');
-    expect(refSection).not.toContain('가짜저자');
-    expect(refSection).not.toContain('존재하지않는논문');
+    // The deterministic guarantee is the structured citedPapers list: it is
+    // built only from PaperMetadata, so an LLM-authored bibliography can
+    // never leak into it (the report body's free-form prose is a separate
+    // concern — the model's own sentences are not stripped, only invalid
+    // [n] citation markers are; see the "strips citation numbers" test).
+    expect(result.citedPapers).toHaveLength(1);
+    expect(result.citedPapers[0]?.paper).toMatchObject({
+      title: '진짜 논문 제목',
+      authors: ['김철수', '이영희'],
+      year: 2022,
+      venue: '한국정보과학회',
+      url: 'https://real.example/paper/42',
+    });
   });
 
   it('strips citation numbers the model invented for papers that are not in the list', async () => {
@@ -196,6 +206,50 @@ describe('runDeepResearch', () => {
 
     expect(result.report).toContain('[1]');
     expect(result.report).not.toContain('[99]');
+    expect(result.citedPapers).toHaveLength(1);
+  });
+
+  it('renumbers citations to a contiguous 1..N sequence in order of first appearance', async () => {
+    const p1 = paper({ title: '논문 하나' });
+    const p2 = paper({ title: '논문 둘' });
+    const p3 = paper({ title: '논문 셋' });
+    // Screening labels every paper 'high' by default (screenAll('high')), so
+    // candidates are numbered [1]=하나, [2]=둘, [3]=셋. The model only cites
+    // [3] then [1] — [2] is never cited.
+    const { adapter } = makeLlm({ report: () => '먼저 [3] 을 보고 이어서 [1] 을 본다.' });
+    const clients = [okClient('kci', [p1, p2, p3])];
+
+    const result = await run({ llm: adapter, clients });
+
+    // First appearance was original [3], so it becomes the new [1]; original
+    // [1] appeared second, so it becomes the new [2].
+    expect(result.report).toContain('먼저 [1] 을 보고 이어서 [2] 을 본다.');
+    expect(result.citedPapers).toHaveLength(2);
+    expect(result.citedPapers[0]?.paper.title).toBe('논문 셋');
+    expect(result.citedPapers[1]?.paper.title).toBe('논문 하나');
+  });
+
+  it('surfaces uncited medium-relevance papers as relatedPapers, capped at 8', async () => {
+    const cited = paper({ title: '인용된 논문' });
+    const uncitedMedium = Array.from({ length: 10 }, (_, i) => paper({ title: `미인용 medium ${i}` }));
+    const { adapter } = makeLlm({
+      screening: (content) => {
+        const count = (content.match(/^\d+\. /gm) ?? []).length;
+        // First paper is high (gets cited), the rest are medium.
+        return JSON.stringify(
+          Array.from({ length: count }, (_, i) => ({ index: i + 1, relevance: i === 0 ? 'high' : 'medium' })),
+        );
+      },
+      report: () => '요약입니다 [1].',
+    });
+    const clients = [okClient('kci', [cited, ...uncitedMedium])];
+
+    const result = await run({ llm: adapter, clients });
+
+    expect(result.citedPapers).toHaveLength(1);
+    expect(result.citedPapers[0]?.paper.title).toBe('인용된 논문');
+    expect(result.relatedPapers).toHaveLength(8);
+    expect(result.relatedPapers.every((p) => p.relevance === 'medium')).toBe(true);
   });
 
   it('aggregates LLM usage across query-gen, screening, and report', async () => {

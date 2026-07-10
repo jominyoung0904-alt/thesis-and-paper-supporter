@@ -19,6 +19,7 @@ import {
   createWizardCallbacks,
   createWritingCheckCallbacks,
 } from './appCallbacks';
+import { FontSizeControl } from './FontSizeControl';
 import { SettingsScreen } from './settings/SettingsScreen';
 import { Wizard } from './settings/wizard';
 import { WritingCheckScreen } from './writing/WritingCheckScreen';
@@ -55,6 +56,20 @@ export function App(): JSX.Element {
     };
   }, []);
 
+  return (
+    <>
+      <FontSizeControl />
+      {renderBody(status, mainTab, setStatus, setMainTab)}
+    </>
+  );
+}
+
+function renderBody(
+  status: BootStatus,
+  mainTab: MainTab,
+  setStatus: (status: BootStatus) => void,
+  setMainTab: (tab: MainTab) => void,
+): JSX.Element {
   if (status === 'loading') {
     return (
       <main className="app-loading">

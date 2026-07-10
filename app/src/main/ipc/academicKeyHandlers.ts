@@ -38,6 +38,14 @@ const IP_MAC_RESTRICTION_NOTICE = '이 키는 발급 시 등록한 컴퓨터/네
 /** Shown for both a malformed Client ID/Secret pair and a failed live verification call. */
 const NAVER_CREDENTIAL_FAILURE_MESSAGE = 'Client ID와 Secret을 다시 확인해 주세요.';
 
+/**
+ * Shown alongside a successful naverdoc save — unlike kci/scienceon, this key
+ * IS verified against a live call before saving, so the user gets explicit
+ * confirmation that the connection actually works (실사용 피드백: "등록됨"
+ * 배지만으로는 실검증 통과 여부가 눈에 띄지 않는다는 지적).
+ */
+const NAVER_KEY_SUCCESS_MESSAGE = '연결 확인 완료 — 등록됐어요';
+
 /** Registers `settings:save-academic-key` and `settings:get-academic-key-status`. */
 export function registerAcademicKeyHandlers(deps: AcademicKeyHandlerDeps): void {
   const { keyStore, getSettings } = deps;
@@ -104,5 +112,5 @@ async function saveNaverDocKey(keyStore: KeyStore, settings: AppSettings, key: s
   if (!saveResult.ok) {
     return { ok: false, message: saveResult.userMessage };
   }
-  return { ok: true };
+  return { ok: true, message: NAVER_KEY_SUCCESS_MESSAGE };
 }
