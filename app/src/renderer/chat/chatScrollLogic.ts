@@ -30,6 +30,40 @@
  * values.
  */
 
+/**
+ * 실사용 피드백 #4 재발 — why commit 251eec1 (the `scrollSignal` rewrite)
+ * did NOT fix the "핸드오프 대화에서 전송 시 화면이 맨 위로 튐" report:
+ *
+ * That fix only corrected the scroll *intent* (making `LOAD_HISTORY_SESSION`
+ * and every post-handoff `SEND_CHAT_*` resolve to `'bottom'`) and proved it
+ * with pure `resolveScrollIntent` tests. But the intent was never wrong —
+ * the handoff→send path already resolved to `'bottom'`. The regression lives
+ * one layer down, in how that intent is *executed*: `ChatScreen.tsx` scrolled
+ * by calling `scrollAnchorRef.current.scrollIntoView({ block: 'end' })` on the
+ * **zero-height** `.chat-scroll-anchor` (`chat.css`: `height: 0`) inside a
+ * post-paint `useEffect`. Three things make that unreliable *specifically*
+ * after a handoff:
+ *   1. `LOAD_HISTORY_SESSION` replaces the ENTIRE message array (every React
+ *      key changes), so the browser tears down and rebuilds `.chat-scroll-area`'s
+ *      children. Native scroll anchoring loses its anchor and the container's
+ *      `scrollTop` is left at 0 (the top).
+ *   2. `Element.scrollIntoView` on a zero-height box is a no-op when the box
+ *      is already considered "in view", so it never pulls `scrollTop` back
+ *      down — the view stays pinned at the top the rebuild left it at.
+ *   3. Running in `useEffect` (after paint) means step 1's reset and step 2's
+ *      no-op race each other frame-to-frame.
+ * `resolveScrollIntent`'s pure tests can't see any of this — they only assert
+ * the string `'bottom'`, which was always correct. So the fix passed CI and
+ * failed in the field.
+ *
+ * The real fix (this module's `resolveScrollTop` + `ChatScreen.tsx`'s
+ * `useLayoutEffect`): compute an explicit target `scrollTop` from the scroll
+ * container's own metrics and set it directly with `scrollArea.scrollTo`,
+ * pre-paint. A numeric target can't no-op, can't be undone by native
+ * anchoring, and never walks up to scroll unrelated ancestors — so a
+ * handed-off conversation follows its own turns to the bottom deterministically.
+ */
+
 /** Where the chat screen's auto-scroll effect should point after a given action. */
 export type ScrollIntent = 'bottom' | 'research-top' | 'none';
 
@@ -82,4 +116,51 @@ export function resolveScrollIntent(actionType: string): ScrollIntent {
     default:
       return 'none';
   }
+}
+
+/**
+ * Scroll-container metrics `ChatScreen.tsx`'s layout effect reads off
+ * `.chat-scroll-area` (and the research panel) to turn a `ScrollIntent` into
+ * an explicit target `scrollTop`. Kept as a plain data object so
+ * `resolveScrollTop` stays pure and unit-testable without a DOM.
+ */
+export interface ScrollMetrics {
+  /**
+   * `scrollHeight - clientHeight` of `.chat-scroll-area` — the maximum
+   * `scrollTop` (i.e. the position that pins the container to its bottom).
+   */
+  maxScrollTop: number;
+  /**
+   * Absolute `scrollTop` at which the research result panel's top edge sits
+   * flush with the scrollport's top — computed by the effect as
+   * `area.scrollTop + (panelRect.top - areaRect.top)`. Only consulted for the
+   * `'research-top'` intent.
+   */
+  researchTopOffset: number;
+}
+
+/**
+ * Turns a resolved `ScrollIntent` into the exact `scrollTop` the container
+ * should be set to (or `null` for `'none'` — leave the scroll position
+ * untouched). Replaces the old `Element.scrollIntoView` approach, whose
+ * zero-height-anchor no-ops and native-scroll-anchoring races are what let
+ * 실사용 피드백 #4 regress after the intent-only fix (see this module's top
+ * doc comment).
+ *
+ * - `'bottom'` → always `maxScrollTop`: follow the conversation to its end,
+ *   deterministically, regardless of how much the transcript just grew or was
+ *   wholesale-replaced by a handoff.
+ * - `'research-top'` → the panel's top offset, clamped to `[0, maxScrollTop]`
+ *   so a short report that already fits never over-scrolls (실사용 피드백 #3
+ *   preserved: land at the START of a long report).
+ */
+export function resolveScrollTop(intent: ScrollIntent, metrics: ScrollMetrics): number | null {
+  if (intent === 'none') {
+    return null;
+  }
+  const max = Math.max(0, metrics.maxScrollTop);
+  if (intent === 'research-top') {
+    return Math.max(0, Math.min(metrics.researchTopOffset, max));
+  }
+  return max;
 }

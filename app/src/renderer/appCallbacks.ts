@@ -58,10 +58,14 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
       return { reply: result.reply, suggestedDecision: result.suggestedDecision };
     },
 
-    async runResearch(question, onProgress) {
-      const result = await window.thesisApi.runResearch(question, (event) => {
-        onProgress({ stage: event.stage, detail: event.detail });
-      });
+    async runResearch(question, onProgress, detailed) {
+      const result = await window.thesisApi.runResearch(
+        question,
+        (event) => {
+          onProgress({ stage: event.stage, detail: event.detail });
+        },
+        detailed,
+      );
       const mapPaper = (paper: (typeof result.papers)[number]) => ({
         title: paper.title,
         authors: paper.authors,
@@ -95,6 +99,9 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
 
     // Gates the naverdoc-connect info banner in research mode (실사용 피드백 #2).
     getAcademicKeyStatus: () => window.thesisApi.getAcademicKeyStatus(),
+
+    // Gates the "🔍+ 상세검색" toggle — selectable only on paid mode.
+    getLlmStatus: () => window.thesisApi.getLlmStatus(),
   };
 }
 

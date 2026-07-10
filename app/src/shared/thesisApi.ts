@@ -58,8 +58,17 @@ export interface ThesisApi {
   openExternal(url: string): void;
   /** Sends one "아이디어 회의" chat turn and returns the assistant's reply. */
   sendChat(text: string): Promise<ChatSendResult>;
-  /** Runs a full deep-research pass, streaming progress via `onProgress`. */
-  runResearch(question: string, onProgress: (event: ResearchProgressPayload) => void): Promise<ResearchRunResult>;
+  /**
+   * Runs a full deep-research pass, streaming progress via `onProgress`.
+   * `detailed` is the paid-mode "🔍+ 상세검색" toggle (`ResearchRunRequest.detailed`)
+   * — optional, defaults to a standard single pass. The paid gate is enforced
+   * server-side in `researchGateHandlers.ts` regardless of what the renderer sends.
+   */
+  runResearch(
+    question: string,
+    onProgress: (event: ResearchProgressPayload) => void,
+    detailed?: boolean,
+  ): Promise<ResearchRunResult>;
   /** Persists a confirmed research decision. */
   saveDecision(what: string, why: string): Promise<void>;
   /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */

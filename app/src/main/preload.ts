@@ -140,7 +140,11 @@ const thesisApi: ThesisApi = {
     return ipcRenderer.invoke(IpcChannels.CHAT_SEND, { text }) as Promise<ChatSendResult>;
   },
 
-  runResearch(question: string, onProgress: (event: ResearchProgressPayload) => void): Promise<ResearchRunResult> {
+  runResearch(
+    question: string,
+    onProgress: (event: ResearchProgressPayload) => void,
+    detailed?: boolean,
+  ): Promise<ResearchRunResult> {
     return new Promise<ResearchRunResult>((resolve, reject) => {
       const listener = (_event: IpcRendererEvent, progress: ResearchProgressPayload): void => {
         onProgress(progress);
@@ -148,7 +152,7 @@ const thesisApi: ThesisApi = {
       ipcRenderer.on(IpcChannels.RESEARCH_PROGRESS, listener);
 
       ipcRenderer
-        .invoke(IpcChannels.RESEARCH_RUN, { question })
+        .invoke(IpcChannels.RESEARCH_RUN, { question, detailed })
         .then((result: ResearchRunResult) => resolve(result))
         .catch((err: unknown) => reject(err))
         .finally(() => {

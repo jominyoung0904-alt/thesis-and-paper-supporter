@@ -25,7 +25,7 @@
  * as-is so the naverdoc-connect banner never drifts from what
  * `SettingsScreen` itself considers "registered".
  */
-import type { AcademicKeyStatus, IpcPaperMetadata } from '../../shared/ipc-channels';
+import type { AcademicKeyStatus, IpcPaperMetadata, LlmStatusResult } from '../../shared/ipc-channels';
 import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
 import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 
@@ -96,8 +96,18 @@ export interface ResearchView {
 export interface ChatScreenCallbacks {
   /** Sends one chat turn in "아이디어 회의" mode and returns the assistant's reply. */
   sendChat(text: string): Promise<ChatReplyResult>;
-  /** Runs a full deep-research pass in "논문 찾기" mode, streaming progress. */
-  runResearch(question: string, onProgress: (event: ResearchProgressEvent) => void): Promise<ResearchView>;
+  /**
+   * Runs a full deep-research pass in "논문 찾기" mode, streaming progress.
+   * `detailed` is the paid-mode "🔍+ 상세검색" toggle — optional, defaults to
+   * a standard single pass. The paid gate itself is enforced server-side
+   * (defense-in-depth); this parameter only carries the renderer's toggle
+   * choice through.
+   */
+  runResearch(
+    question: string,
+    onProgress: (event: ResearchProgressEvent) => void,
+    detailed?: boolean,
+  ): Promise<ResearchView>;
   /** Persists a confirmed research decision. Called only after the user clicks [기록하기]. */
   saveDecision(what: string, why: string): Promise<void>;
   /** Opens a URL in the user's default external browser (never a raw `<a target=_blank>`). */
@@ -119,6 +129,14 @@ export interface ChatScreenCallbacks {
    * method; the banner never renders while this is absent.
    */
   getAcademicKeyStatus?(): Promise<AcademicKeyStatus>;
+  /**
+   * Reports the currently active LLM provider/mode — used only to decide
+   * whether the "🔍+ 상세검색" toggle is selectable (paid mode only).
+   * Optional — undefined until `appCallbacks.ts` wires the real
+   * `thesisApi.getLlmStatus` bridge method; the toggle stays locked (with its
+   * free-mode hint shown) while this is absent.
+   */
+  getLlmStatus?(): Promise<LlmStatusResult>;
 }
 
 export interface ChatScreenProps {

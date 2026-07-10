@@ -4,7 +4,10 @@
  * non-technical user always knows what pressing 보내기 will do.
  */
 import type { ChatMode } from './chatTypes';
+import { DetailedSearchToggle } from './DetailedSearchToggle';
+import { shouldShowDetailedSearchToggle } from './detailedSearchLogic';
 import { ModeToggle } from './ModeToggle';
+import './detailedSearchToggle.css';
 
 interface MessageInputProps {
   mode: ChatMode;
@@ -12,9 +15,13 @@ interface MessageInputProps {
   canSend: boolean;
   modeLocked: boolean;
   busy: boolean;
+  /** Whether the "🔍+ 상세검색" checkbox is selectable right now (paid mode only). */
+  detailedSearchAvailable: boolean;
+  detailedSearchChecked: boolean;
   onChangeMode(mode: ChatMode): void;
   onChangeText(text: string): void;
   onSend(): void;
+  onToggleDetailedSearch(checked: boolean): void;
 }
 
 const PLACEHOLDER: Record<ChatMode, string> = {
@@ -33,9 +40,12 @@ export function MessageInput({
   canSend,
   modeLocked,
   busy,
+  detailedSearchAvailable,
+  detailedSearchChecked,
   onChangeMode,
   onChangeText,
   onSend,
+  onToggleDetailedSearch,
 }: MessageInputProps): JSX.Element {
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key === 'Enter' && !event.shiftKey && canSend) {
@@ -47,6 +57,14 @@ export function MessageInput({
   return (
     <div className="chat-input-area">
       <ModeToggle mode={mode} disabled={modeLocked} onSelect={onChangeMode} />
+      {shouldShowDetailedSearchToggle({ mode }) && (
+        <DetailedSearchToggle
+          available={detailedSearchAvailable}
+          checked={detailedSearchChecked}
+          disabled={busy}
+          onChange={onToggleDetailedSearch}
+        />
+      )}
       <div className="chat-input-row">
         <textarea
           className="chat-input-textarea"

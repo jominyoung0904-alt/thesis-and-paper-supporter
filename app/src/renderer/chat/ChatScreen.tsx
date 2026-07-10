@@ -22,19 +22,25 @@
  * scrolling messages area, so it never gets pushed away by a long
  * conversation.
  *
- * Auto-scroll (실사용 피드백 #3/#4): driven entirely by `state.scrollSignal`
- * (see `chatUiLogic.ts`'s doc comment for the full rationale) rather than
- * comparing derived values across renders — every message-adding action
- * scrolls `scrollAnchorRef` (the bottom) into view, except a finished
- * research result, which scrolls `researchPanelRef` (the top of that block)
- * into view instead, since a long report should be read from its start.
+ * Auto-scroll (실사용 피드백 #3/#4): the reducer stamps a `scrollSignal`
+ * intent on each action (see `chatScrollLogic.ts`) and a `useLayoutEffect`
+ * sets `.chat-scroll-area`'s `scrollTop` directly to the target computed by
+ * `resolveScrollTop` — every message-adding action follows the conversation
+ * to the bottom, except a finished research result, which lands at the TOP of
+ * that block since a long report should be read from its start. Setting
+ * `scrollTop` on the container (rather than `scrollIntoView`-ing a zero-height
+ * anchor, the approach whose no-op/anchoring races let 실사용 피드백 #4 regress
+ * — see `chatScrollLogic.ts`'s top doc comment) makes a handed-off
+ * conversation follow its own turns deterministically.
  */
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { canSendMessage, canSwitchMode, chatReducer, createInitialChatState } from './chatUiLogic';
+import { resolveScrollTop } from './chatScrollLogic';
 import { startHandoffFromLatestResult } from './researchHandoffLogic';
 import { SLOW_RESPONSE_DELAY_MS, SLOW_RESPONSE_MESSAGE } from './slowResponseLogic';
 import { useChatSessionManagement } from './useChatSessionManagement';
+import { useDetailedSearchToggleState } from './useDetailedSearchToggleState';
 import { useNaverDocBannerState } from './useNaverDocBannerState';
 import type { ChatScreenProps } from './chatTypes';
 import { createChatHistoryCallbacks, createResearchHistoryScreenCallbacks } from '../appCallbacks';
@@ -46,6 +52,7 @@ import { NaverDocBanner } from './NaverDocBanner';
 import { ResearchProgress } from './ResearchProgress';
 import { DecisionConfirmCard } from './DecisionConfirmCard';
 import './chat.css';
+import './chatBanners.css';
 
 function makeId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -60,10 +67,11 @@ export function ChatScreen({
   onNavigateToSettings,
 }: ChatScreenProps): JSX.Element {
   const [state, dispatch] = useReducer(chatReducer, createInitialChatState());
-  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const researchPanelRef = useRef<HTMLDivElement>(null);
   const historyCallbacks = useMemo(() => createChatHistoryCallbacks(), []);
   const naverBanner = useNaverDocBannerState(state.mode, callbacks.getAcademicKeyStatus);
+  const detailedSearch = useDetailedSearchToggleState(callbacks.getLlmStatus);
   // Chat-history sidebar + cross-tab handoff (T54, T51/T62) — see
   // `useChatSessionManagement.ts`.
   const session = useChatSessionManagement(dispatch, historyCallbacks, pendingHandoff, onHandoffConsumed);
@@ -84,24 +92,35 @@ export function ChatScreen({
     return () => clearTimeout(timer);
   }, [isBusy]);
 
-  // Auto-scroll, driven by `state.scrollSignal` (see `chatUiLogic.ts`'s doc
-  // comment). `scrollSignal` is a fresh object every time the reducer bumps
-  // its `seq`, so this always re-fires exactly once per intended scroll —
-  // it does not depend on comparing derived values (message count, research
-  // booleans, ...) across renders, which is what let a follow-up chat turn
-  // in a handed-off conversation silently fail to re-scroll (실사용 피드백
-  // #4). `research-top` scrolls the result panel's own top into view
-  // instead of the bottom, since a finished report can be long (실사용
-  // 피드백 #3).
-  useEffect(() => {
-    if (state.scrollSignal.intent === 'none') {
+  // Auto-scroll, driven by `state.scrollSignal` (fresh object per intended
+  // scroll — see `chatScrollLogic.ts`). 실사용 피드백 #4 재발 fix: we set the
+  // container's `scrollTop` directly from `resolveScrollTop` instead of
+  // calling `Element.scrollIntoView` on the zero-height `.chat-scroll-anchor`.
+  // A numeric target can't no-op on a zero-height box and never walks up to
+  // scroll unrelated ancestors, so a handed-off conversation (whose message
+  // array was wholesale-replaced by `LOAD_HISTORY_SESSION`) reliably follows
+  // its own turns to the bottom instead of getting stranded at the top where
+  // the DOM rebuild left it. Runs in `useLayoutEffect` (pre-paint) so it wins
+  // the race against the browser's native scroll anchoring rather than
+  // fighting it a frame later. `research-top` lands at the START of a finished
+  // report (실사용 피드백 #3), everything else follows the conversation down.
+  useLayoutEffect(() => {
+    const area = scrollAreaRef.current;
+    if (!area || state.scrollSignal.intent === 'none') {
       return;
     }
-    if (state.scrollSignal.intent === 'research-top') {
-      researchPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const panel = researchPanelRef.current;
+    const researchTopOffset = panel
+      ? area.scrollTop + (panel.getBoundingClientRect().top - area.getBoundingClientRect().top)
+      : 0;
+    const target = resolveScrollTop(state.scrollSignal.intent, {
+      maxScrollTop: area.scrollHeight - area.clientHeight,
+      researchTopOffset,
+    });
+    if (target === null) {
       return;
     }
-    scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    area.scrollTo({ top: target, behavior: 'smooth' });
   }, [state.scrollSignal]);
 
   async function handleSend(): Promise<void> {
@@ -114,9 +133,13 @@ export function ChatScreen({
     if (state.mode === 'research') {
       dispatch({ type: 'RESEARCH_START', id: makeId(), question: text, now: Date.now() });
       try {
-        const result = await callbacks.runResearch(text, (event) => {
-          dispatch({ type: 'RESEARCH_PROGRESS', stage: event.stage, detail: event.detail });
-        });
+        const result = await callbacks.runResearch(
+          text,
+          (event) => {
+            dispatch({ type: 'RESEARCH_PROGRESS', stage: event.stage, detail: event.detail });
+          },
+          detailedSearch.checked,
+        );
         dispatch({ type: 'RESEARCH_SUCCESS', result });
       } catch (error) {
         dispatch({
@@ -212,7 +235,7 @@ export function ChatScreen({
         onSessionLoaded={session.handleSessionLoaded}
         onActiveSessionRemoved={session.handleActiveSessionRemoved}
       />
-      <div className="chat-scroll-area">
+      <div className="chat-scroll-area" ref={scrollAreaRef}>
         <MessageList messages={state.messages} />
         <div ref={researchPanelRef}>
           <ResearchProgress
@@ -227,7 +250,6 @@ export function ChatScreen({
           onConfirm={handleConfirmDecision}
           onDismiss={() => dispatch({ type: 'DECISION_DISMISS' })}
         />
-        <div className="chat-scroll-anchor" ref={scrollAnchorRef} />
       </div>
       {naverBanner.visible && (
         <NaverDocBanner onNavigateToSettings={onNavigateToSettings} onDismiss={naverBanner.dismiss} />
@@ -243,9 +265,12 @@ export function ChatScreen({
         canSend={canSendMessage(state)}
         modeLocked={!canSwitchMode(state)}
         busy={isBusy}
+        detailedSearchAvailable={detailedSearch.available}
+        detailedSearchChecked={detailedSearch.checked}
         onChangeMode={(mode) => dispatch({ type: 'SET_MODE', mode })}
         onChangeText={(text) => dispatch({ type: 'SET_INPUT', text })}
         onSend={handleSend}
+        onToggleDetailedSearch={detailedSearch.setChecked}
       />
     </div>
   );
