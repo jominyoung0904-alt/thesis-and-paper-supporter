@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { app, dialog } from 'electron';
 
+import { runSessionBackup } from './backup/sessionBackup';
 import { createElectronCryptoBackend, KeyStore } from './config/keyStore';
 import { fetchRemoteConfig, mergeRemoteIntoSettings } from './config/remoteConfig';
 import { loadSettings, saveSettings } from './config/settingsLoader';
@@ -14,6 +15,10 @@ import { showRunLocationErrorAndQuit } from './startup/pathCheckDialog';
 import { createMainWindow } from './window';
 
 const REMOTE_CONFIG_TIMEOUT_MS = 5000;
+// Delay before the startup backup fires, so it never competes with the
+// window's initial paint for CPU/disk I/O (NFR-OPS-001). See
+// `backup/sessionBackup.ts` for why this runs at startup rather than on quit.
+const SESSION_BACKUP_DELAY_MS = 3000;
 
 /**
  * Entry point for the Electron main process.
@@ -31,6 +36,8 @@ const REMOTE_CONFIG_TIMEOUT_MS = 5000;
  * 5. Window creation — never blocked by the remote config fetch.
  * 6. Remote config fetch in the background; failures notify but never block
  *    (NFR-CFG-004: alert, then continue on local defaults).
+ * 7. Session backup, fired after a short delay (NFR-OPS-001) — see
+ *    `backup/sessionBackup.ts` for why this runs at startup, not on quit.
  */
 async function bootstrap(): Promise<void> {
   // electron-builder portable builds self-extract to %TEMP% and run from
@@ -83,6 +90,19 @@ async function bootstrap(): Promise<void> {
   });
 
   createMainWindow();
+
+  // Fire-and-forget: `runSessionBackup` spawns a detached PowerShell process
+  // and returns immediately, so this never delays or blocks the app. The
+  // delay keeps it off the critical path for the window's first paint.
+  setTimeout(() => {
+    const backupResult = runSessionBackup({
+      dataDir: paths.dataDir,
+      backupsDir: join(paths.root, 'backups'),
+    });
+    if (!backupResult.ok) {
+      console.error('[backup] session backup skipped:', backupResult.reason);
+    }
+  }, SESSION_BACKUP_DELAY_MS);
 
   if (settingsResult.recovered && settingsResult.userMessage) {
     void dialog.showMessageBox({
