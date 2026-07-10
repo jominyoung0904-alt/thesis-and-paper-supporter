@@ -20,6 +20,25 @@ describe('resolveAppPaths', () => {
     expect(paths.settingsFile).toBe(join(paths.root, 'config', 'settings.json'));
   });
 
+  // Regression (2026-07-11 field bug): portable builds run from a temp
+  // extraction, so PORTABLE_EXECUTABLE_DIR must win over execPath —
+  // otherwise data/ and config/ land in (and vanish with) the temp dir.
+  it('prefers portableDir over execPath in packaged mode', () => {
+    const tempExecPath = join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp', '2fL9aX.tmp', '논문서포터.exe');
+    const portableDir = join('C:', 'Users', 'test', 'Documents', '논문작성서포터');
+
+    const paths = resolveAppPaths({
+      isPackaged: true,
+      execPath: tempExecPath,
+      portableDir,
+      appPath: 'unused',
+    });
+
+    expect(paths.root).toBe(portableDir);
+    expect(paths.dataDir).toBe(join(portableDir, 'data'));
+    expect(paths.settingsFile).toBe(join(portableDir, 'config', 'settings.json'));
+  });
+
   it('resolves the distribution root as the repo root (parent of app/) in dev mode', () => {
     const appPath = join('F:', 'coding projects', '논문 작성 서포터', 'app');
 

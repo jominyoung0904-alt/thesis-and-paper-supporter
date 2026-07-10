@@ -11,6 +11,14 @@ export interface CheckRunLocationInput {
   /** Mirrors Node's `process.execPath`. */
   execPath: string;
   /**
+   * Mirrors `process.env.PORTABLE_EXECUTABLE_DIR`. The electron-builder
+   * portable target ALWAYS runs from a self-extracted %TEMP% copy, so
+   * `execPath` alone would flag every launch as temp-folder. When this is
+   * set, it is the location the user actually launched from and MUST be the
+   * path we judge instead of `execPath`.
+   */
+  portableDir?: string;
+  /**
    * Candidate OS temp directories to check `execPath` against. Callers
    * typically pass `[tmpdir()]`, but the list form allows tests (and
    * platform-specific callers) to inject additional known temp roots
@@ -77,12 +85,21 @@ export function checkRunLocation(input: CheckRunLocationInput): RunLocationVerdi
     return { ok: true };
   }
 
-  if (ZIP_PREVIEW_PATTERN.test(input.execPath)) {
+  // Portable builds always execute from a self-extracted temp copy, so the
+  // user-visible launch location (PORTABLE_EXECUTABLE_DIR) is what we judge.
+  // Note: the env var is the exe's *directory*, so append a filename segment
+  // to keep the same "path under temp dir" semantics as execPath.
+  const effectivePath =
+    input.portableDir !== undefined && input.portableDir !== ''
+      ? `${input.portableDir}${sep}논문서포터.exe`
+      : input.execPath;
+
+  if (ZIP_PREVIEW_PATTERN.test(effectivePath)) {
     return { ok: false, reason: 'zip-preview', userMessage: ZIP_PREVIEW_MESSAGE };
   }
 
   const tempDirs = input.tempDirs.length > 0 ? input.tempDirs : [tmpdir()];
-  const isInTemp = tempDirs.some((tempDir) => isUnderTempDir(input.execPath, tempDir));
+  const isInTemp = tempDirs.some((tempDir) => isUnderTempDir(effectivePath, tempDir));
 
   if (isInTemp) {
     return { ok: false, reason: 'temp-folder', userMessage: TEMP_FOLDER_MESSAGE };

@@ -5,6 +5,48 @@ import { describe, expect, it } from 'vitest';
 import { checkRunLocation } from '../../src/main/startup/pathCheck';
 
 describe('checkRunLocation', () => {
+  // Regression (2026-07-11 field bug): electron-builder portable builds
+  // ALWAYS run from a self-extracted %TEMP% copy, so execPath alone flagged
+  // every launch. PORTABLE_EXECUTABLE_DIR must decide instead.
+  it('passes when execPath is in temp but the portable dir is a normal folder', () => {
+    const tempDir = join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp');
+
+    const verdict = checkRunLocation({
+      execPath: join(tempDir, '2fL9aX.tmp', '논문서포터.exe'),
+      portableDir: join('C:', 'Users', 'test', 'Documents', '논문작성서포터'),
+      tempDirs: [tempDir],
+      isPackaged: true,
+    });
+
+    expect(verdict.ok).toBe(true);
+  });
+
+  it('fails when the portable dir itself is inside a temp directory', () => {
+    const tempDir = join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp');
+
+    const verdict = checkRunLocation({
+      execPath: join(tempDir, '2fL9aX.tmp', '논문서포터.exe'),
+      portableDir: join(tempDir, '논문작성서포터'),
+      tempDirs: [tempDir],
+      isPackaged: true,
+    });
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe('temp-folder');
+  });
+
+  it('fails when the portable dir matches the Explorer zip-preview pattern', () => {
+    const verdict = checkRunLocation({
+      execPath: join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp', 'x.tmp', '논문서포터.exe'),
+      portableDir: join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp', 'Temp1_논문작성서포터.zip', '논문작성서포터'),
+      tempDirs: [join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp')],
+      isPackaged: true,
+    });
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe('zip-preview');
+  });
+
   it('always passes in dev mode, even from a temp-like path', () => {
     const execPath = join('C:', 'Users', 'test', 'AppData', 'Local', 'Temp', '논문서포터.exe');
 

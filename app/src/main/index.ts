@@ -26,8 +26,13 @@ const REMOTE_CONFIG_TIMEOUT_MS = 5000;
  *    (NFR-CFG-004: alert, then continue on local defaults).
  */
 async function bootstrap(): Promise<void> {
+  // electron-builder portable builds self-extract to %TEMP% and run from
+  // there; this env var carries the directory the user actually launched.
+  const portableDir = process.env.PORTABLE_EXECUTABLE_DIR;
+
   const verdict = checkRunLocation({
     execPath: process.execPath,
+    portableDir,
     tempDirs: [tmpdir()],
     isPackaged: app.isPackaged,
   });
@@ -39,6 +44,7 @@ async function bootstrap(): Promise<void> {
   const paths = resolveAppPaths({
     isPackaged: app.isPackaged,
     execPath: process.execPath,
+    portableDir,
     appPath: app.getAppPath(),
   });
   ensureAppDirectories(paths);

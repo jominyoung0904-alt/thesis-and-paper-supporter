@@ -22,6 +22,15 @@ export interface ResolveAppPathsInput {
   execPath: string;
   /** Mirrors Electron's `app.getAppPath()`. */
   appPath: string;
+  /**
+   * Mirrors `process.env.PORTABLE_EXECUTABLE_DIR`. The electron-builder
+   * portable target self-extracts to %TEMP% and runs from there, so
+   * `execPath` points into the temp dir — this env var carries the directory
+   * of the exe the user actually double-clicked. When present it MUST win
+   * over `execPath`, otherwise data/config would be created in (and lost
+   * with) the temp dir.
+   */
+  portableDir?: string;
 }
 
 /**
@@ -33,7 +42,8 @@ export interface ResolveAppPathsInput {
  */
 // @AX:ANCHOR: [AUTO] single source of truth for portable path resolution — high fan-in, do not change signature casually. Related: SPEC-TSA-001
 export function resolveAppPaths(input: ResolveAppPathsInput): AppPaths {
-  const root = input.isPackaged ? dirname(input.execPath) : dirname(input.appPath);
+  const packagedRoot = input.portableDir ?? dirname(input.execPath);
+  const root = input.isPackaged ? packagedRoot : dirname(input.appPath);
 
   const appDir = join(root, 'app');
   const dataDir = join(root, 'data');
