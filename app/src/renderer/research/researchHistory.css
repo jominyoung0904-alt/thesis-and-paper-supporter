@@ -1,0 +1,130 @@
+/*
+ * Research-history screen styling. Same large-text, high-contrast approach
+ * as `gateHistoryScreen.css` — the audience is non-technical grad students.
+ * Class names use the `research-history-*` prefix (distinct from
+ * `research-*` in `chat/researchPanel.css`, which this screen's detail view
+ * also renders via `<ResearchProgress>`).
+ */
+
+.research-history-screen {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 18px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.research-history-lead {
+  font-size: 18px;
+  margin: 0;
+}
+
+.research-history-status {
+  color: #444;
+  margin: 0;
+}
+
+.research-history-error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.research-history-empty {
+  color: #666;
+  margin: 0;
+}
+
+.research-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.research-history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.research-history-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  min-width: 0;
+}
+
+.research-history-item-question {
+  color: #222;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.research-history-item-meta {
+  font-size: 14px;
+  color: #666;
+}
+
+.research-history-item-remove {
+  border: none;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+.research-history-back {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.research-history-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.research-history-detail-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.research-history-detail-date {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.research-history-detail-remove {
+  align-self: flex-start;
+  border: 1px solid #b91c1c;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 15px;
+}

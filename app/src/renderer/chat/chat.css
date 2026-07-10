@@ -21,6 +21,33 @@
   width: 100%;
 }
 
+/* Header row (T54): 대화 목록 toggle + 새 대화 button. Sits above
+   `.chat-scroll-area`, outside it, so it never scrolls out of view. */
+.chat-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-history-toggle-btn,
+.chat-new-btn {
+  padding: 8px 14px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+}
+
+.chat-history-action-error {
+  flex-shrink: 0;
+  color: #b91c1c;
+  margin: -8px 0 0;
+  font-size: 15px;
+}
+
 /* Only this area scrolls — messages, research report, decision card. The
    mode toggle + textarea (`.chat-input-area`, a sibling below) never
    scrolls out of view (KakaoTalk-style always-visible input). */

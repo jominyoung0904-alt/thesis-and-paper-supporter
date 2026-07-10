@@ -1,0 +1,158 @@
+/*
+ * Literature library screen styling (Task T45, FR-LIB-001/002). Same
+ * large-text, high-contrast approach as `gateHistoryScreen.css` /
+ * `researchHistory.css` — the audience is non-technical grad students.
+ */
+
+.library-screen {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 18px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.library-lead {
+  font-size: 18px;
+  margin: 0;
+}
+
+.library-status {
+  color: #444;
+  margin: 0;
+}
+
+.library-error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.library-empty {
+  color: #666;
+  margin: 0;
+}
+
+.library-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.library-item {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.library-item-title-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  font-weight: bold;
+  padding: 0;
+  text-align: left;
+}
+
+.library-item-title {
+  font-weight: bold;
+}
+
+.library-item-remove {
+  border: none;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.library-item-meta {
+  color: #444;
+  font-size: 15px;
+  margin: 0;
+}
+
+.library-item-memo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.library-item-memo {
+  color: #222;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-item-memo-edit {
+  border: none;
+  background: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.library-item-memo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-item-memo-input {
+  font: inherit;
+  font-size: 16px;
+  padding: 6px 10px;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+}
+
+.library-item-memo-count {
+  color: #666;
+  font-size: 13px;
+}
+
+.library-item-memo-error {
+  color: #b91c1c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.library-item-memo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.library-item-memo-actions button {
+  font-size: 15px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f9fafb;
+  cursor: pointer;
+}

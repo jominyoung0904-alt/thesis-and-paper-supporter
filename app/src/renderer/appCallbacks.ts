@@ -61,6 +61,10 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
         year: paper.year,
         url: paper.url,
         source: paper.source,
+        // Raw metadata rides along so `ResearchProgress`'s library-save
+        // button (Task T45, FR-LIB-001) can call `saveToLibrary` with the
+        // paper's `source`+`externalId` duplicate-detection key.
+        metadata: paper.metadata,
       });
       return {
         report: result.report,
@@ -128,6 +132,8 @@ export interface LibraryScreenCallbacks {
   listLibrary(): Promise<LibraryListResult>;
   updateLibraryMemo(id: string, memo: string): Promise<LibraryUpdateMemoResult>;
   removeFromLibrary(id: string): Promise<LibraryRemoveResult>;
+  /** Opens a URL in the user's default external browser (same `openLink` pattern as `ChatScreenCallbacks`). */
+  openLink(url: string): void;
 }
 
 export function createLibraryScreenCallbacks(): LibraryScreenCallbacks {
@@ -136,6 +142,7 @@ export function createLibraryScreenCallbacks(): LibraryScreenCallbacks {
     listLibrary: () => window.thesisApi.listLibrary(),
     updateLibraryMemo: (id, memo) => window.thesisApi.updateLibraryMemo(id, memo),
     removeFromLibrary: (id) => window.thesisApi.removeFromLibrary(id),
+    openLink: (url) => window.thesisApi.openExternal(url),
   };
 }
 

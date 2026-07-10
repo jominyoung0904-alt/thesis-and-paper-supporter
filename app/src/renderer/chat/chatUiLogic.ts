@@ -76,7 +76,9 @@ export type ChatAction =
   | { type: 'DECISION_SAVE_SUCCESS' }
   | { type: 'DECISION_SAVE_FAILURE'; message: string }
   | { type: 'DECISION_DISMISS' }
-  | { type: 'ADD_SUMMARY_MESSAGE'; id: string; text: string; now: number };
+  | { type: 'ADD_SUMMARY_MESSAGE'; id: string; text: string; now: number }
+  | { type: 'LOAD_HISTORY_SESSION'; messages: ChatMessage[] }
+  | { type: 'NEW_CHAT_SESSION' };
 
 function userMessage(id: string, text: string, now: number): ChatMessage {
   return { id, role: 'user', text, createdAt: now };
@@ -197,6 +199,29 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: [...state.messages, { id: action.id, role: 'summary', text: action.text, createdAt: action.now }],
       };
+    }
+
+    // Replaces the transcript with a loaded saved session (FR-CHM-003). The
+    // backend's ConversationManager is already restored by the time this
+    // fires — sending the next turn continues the loaded conversation
+    // seamlessly. Any in-flight research/decision-card UI is cleared since
+    // it belonged to the previous (now-replaced) transcript.
+    case 'LOAD_HISTORY_SESSION': {
+      return {
+        ...state,
+        mode: 'discuss',
+        messages: action.messages,
+        inputText: '',
+        sending: false,
+        decisionCard: { status: 'hidden', decision: null, errorMessage: null },
+        research: { active: false, stage: null, detail: null, result: null, errorMessage: null },
+      };
+    }
+
+    // Clears the screen for a brand-new conversation (FR-CHM-004) — mirrors
+    // `createInitialChatState()` exactly.
+    case 'NEW_CHAT_SESSION': {
+      return createInitialChatState();
     }
 
     default:

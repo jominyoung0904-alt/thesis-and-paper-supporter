@@ -64,12 +64,72 @@
 }
 
 .research-ref-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 8px;
   font-size: 15px;
   line-height: 1.5;
   border-radius: 6px;
   transition: background-color 0.3s ease;
+}
+
+.research-ref-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.research-ref-row-actions {
+  flex-shrink: 0;
+}
+
+/* Library-save button/badge (Task T45, FR-LIB-001). */
+.research-save-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.research-save-button {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.research-save-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.research-save-badge {
+  font-size: 14px;
+  white-space: nowrap;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.research-save-badge-saved {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.research-save-badge-duplicate {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.research-save-error {
+  color: #b91c1c;
+  font-size: 13px;
+  text-align: right;
 }
 
 /* Applied for 1.5s after the matching `[n]` citation link is clicked

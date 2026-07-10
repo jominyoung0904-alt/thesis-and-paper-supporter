@@ -10,13 +10,26 @@
  * clickable — clicking one scrolls the matching numbered reference row
  * into view and highlights it briefly, so the reader doesn't have to hunt
  * through the reference list manually.
+ *
+ * Task T45 (FR-LIB-001): every reference row also carries a library "save"
+ * button (`ReferenceRow` in `researchReferenceRow.tsx`, state managed by
+ * `useLibrarySaveState`). That hook imports `createLibraryScreenCallbacks`
+ * directly from `../appCallbacks` instead of taking it as a prop, because
+ * `ChatScreen.tsx` (this component's only current caller inside the chat
+ * tab) is owned by another in-flight task (T54) this wave and must not be
+ * touched — see this task's completion report for the rationale. This also
+ * means the save button "just works" for `ResearchHistoryScreen`, which
+ * reuses this same component (see `research/researchHistoryLogic.ts`'s
+ * `toResearchRunState`).
  */
 import { useState } from 'react';
 
 import { CITATION_HIGHLIGHT_MS, referenceElementId, splitCitationSegments } from './citationLink';
 import { parseMarkdownLite } from './markdownLite';
 import { researchStageIndex, researchStageLabel, RESEARCH_STAGE_COUNT } from './progressStages';
-import type { ResearchFailedSourceView, ResearchPaperView, ResearchView } from './chatTypes';
+import { ReferenceRow } from './researchReferenceRow';
+import { useLibrarySaveState } from './useLibrarySaveState';
+import type { ResearchFailedSourceView, ResearchView } from './chatTypes';
 import type { ResearchRunState } from './chatUiLogic';
 import './researchPanel.css';
 
@@ -35,45 +48,6 @@ function ProgressBar({ stage }: { stage: string | null }): JSX.Element {
         {stepNumber} / {RESEARCH_STAGE_COUNT} 단계
       </p>
     </div>
-  );
-}
-
-/**
- * One reference line: `[n] 저자 (연도). 제목. 출처` where the title is a
- * clickable link (falls back to plain text when there's no URL). `number`
- * is `null` for the unnumbered "관련이 있을 수 있는 문헌" section. Carries an
- * `id` (Task T35 fix#2) so an in-report `[n]` citation link can scroll here,
- * and briefly highlights when it is the current jump target.
- */
-function ReferenceRow({
-  number,
-  paper,
-  highlighted,
-  onOpenLink,
-}: {
-  number: number | null;
-  paper: ResearchPaperView;
-  highlighted: boolean;
-  onOpenLink(url: string): void;
-}): JSX.Element {
-  const authors = paper.authors.length > 0 ? paper.authors.join(', ') : '저자 미상';
-  const year = paper.year ?? '연도 미상';
-  const rowClassName = `research-ref-row${highlighted ? ' research-ref-row-highlight' : ''}`;
-  return (
-    <li id={number !== null ? referenceElementId(number) : undefined} className={rowClassName}>
-      {number !== null && <span className="research-ref-number">[{number}] </span>}
-      <span className="research-ref-meta">
-        {authors} ({year}).{' '}
-      </span>
-      {paper.url ? (
-        <button type="button" className="research-paper-title-link" onClick={() => onOpenLink(paper.url as string)}>
-          {paper.title}
-        </button>
-      ) : (
-        <span className="research-paper-title">{paper.title}</span>
-      )}
-      <span className="research-ref-source">. {paper.source}</span>
-    </li>
   );
 }
 
@@ -158,6 +132,9 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
   // `CITATION_HIGHLIGHT_MS`.
   const [highlightedRef, setHighlightedRef] = useState<number | null>(null);
 
+  // Library-save button state (Task T45, FR-LIB-001) — see `useLibrarySaveState.ts`.
+  const librarySave = useLibrarySaveState();
+
   function handleCitationClick(number: number): void {
     document.getElementById(referenceElementId(number))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setHighlightedRef(number);
@@ -188,7 +165,9 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
                     number={index + 1}
                     paper={paper}
                     highlighted={highlightedRef === index + 1}
+                    saveStatus={librarySave.statusFor(paper)}
                     onOpenLink={onOpenLink}
+                    onSave={() => librarySave.save(paper)}
                   />
                 ))}
               </ul>
@@ -199,7 +178,15 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
               <h4>관련이 있을 수 있는 문헌</h4>
               <ul className="research-ref-list">
                 {research.result.relatedPapers.map((paper, index) => (
-                  <ReferenceRow key={index} number={null} paper={paper} highlighted={false} onOpenLink={onOpenLink} />
+                  <ReferenceRow
+                    key={index}
+                    number={null}
+                    paper={paper}
+                    highlighted={false}
+                    saveStatus={librarySave.statusFor(paper)}
+                    onOpenLink={onOpenLink}
+                    onSave={() => librarySave.save(paper)}
+                  />
                 ))}
               </ul>
             </div>

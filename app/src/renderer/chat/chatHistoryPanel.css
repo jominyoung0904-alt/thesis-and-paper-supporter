@@ -1,0 +1,122 @@
+/*
+ * Chat history sidebar styling (T54, SPEC-TSA-002 FR-CHM). Same large-text,
+ * high-contrast approach as `chat.css` / `gateHistoryScreen.css`.
+ */
+
+.chat-history-panel {
+  flex-shrink: 0;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chat-history-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-history-panel-title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.chat-history-panel-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  padding: 4px 8px;
+}
+
+.chat-history-status,
+.chat-history-empty {
+  color: #666;
+  margin: 0;
+  font-size: 15px;
+}
+
+.chat-history-error {
+  color: #b91c1c;
+  margin: 0;
+  font-size: 15px;
+}
+
+.chat-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.chat-history-item-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.chat-history-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  min-width: 0;
+}
+
+.chat-history-item-main:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.chat-history-item-title {
+  font-weight: bold;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.chat-history-item-subtitle {
+  font-size: 13px;
+  color: #666;
+}
+
+.chat-history-item-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 12px;
+  font-size: 16px;
+  color: #b91c1c;
+}
+
+.chat-history-item-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

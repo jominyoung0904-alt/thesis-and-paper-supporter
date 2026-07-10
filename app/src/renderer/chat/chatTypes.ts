@@ -14,7 +14,15 @@
  * Like the wizard, this screen never touches IPC directly — it is a pure
  * function of `ChatScreenCallbacks`, which the central app shell wires to
  * the real `window.api.*` preload bridge.
+ *
+ * `ResearchPaperView.metadata` (Task T45, FR-LIB) is the one deliberate
+ * exception to the "mirror, don't import" rule above: it reuses
+ * `IpcPaperMetadata` from the shared IPC layer as-is (not core), since the
+ * library-save button in `ResearchProgress.tsx` needs the paper's full raw
+ * metadata (source + externalId, the duplicate-detection key) to call
+ * `saveToLibrary`.
  */
+import type { IpcPaperMetadata } from '../../shared/ipc-channels';
 
 /** Chat mode toggle shown above the input box. */
 export type ChatMode = 'discuss' | 'research';
@@ -53,6 +61,8 @@ export interface ResearchPaperView {
   year: number | null;
   url: string | null;
   source: string;
+  /** Full raw metadata — the library-save button's `saveToLibrary` input (Task T45, FR-LIB-001). */
+  metadata: IpcPaperMetadata;
 }
 
 /** Failed-source row mirrored from `DeepResearchResult.failedSources`. */
