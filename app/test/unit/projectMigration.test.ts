@@ -173,6 +173,77 @@ describe('migrateDefaultProject', () => {
     });
   });
 
+  describe('branch 2: rename succeeds but index write fails — rollback (M2)', () => {
+    function seedDefaultProject(): string {
+      const defaultPaths = resolveProjectPaths(dataDir, 'default');
+      mkdirSync(defaultPaths.root, { recursive: true });
+      writeFileSync(defaultPaths.memoryFile, JSON.stringify({ researchQuestion: 'Sprint 1 데이터' }), 'utf-8');
+      return defaultPaths.root;
+    }
+
+    it('rolls back the rename (restores default/) and returns an error result', () => {
+      const defaultRoot = seedDefaultProject();
+
+      const result = migrateDefaultProject(dataDir, {
+        writeFileSync: () => {
+          throw new Error('ENOSPC: disk full');
+        },
+      });
+
+      expect(result).toEqual({ migrated: false, reason: 'error', userMessage: expect.any(String) });
+      expect(existsSync(defaultRoot)).toBe(true);
+      const content = JSON.parse(readFileSync(join(defaultRoot, 'memory.json'), 'utf-8'));
+      expect(content.researchQuestion).toBe('Sprint 1 데이터');
+    });
+
+    it('never leaves an orphaned {uuid}/ directory behind after the rollback', () => {
+      seedDefaultProject();
+
+      migrateDefaultProject(dataDir, {
+        writeFileSync: () => {
+          throw new Error('ENOSPC: disk full');
+        },
+      });
+
+      const projectsDir = join(dataDir, 'projects');
+      const entries = existsSync(projectsDir) ? readdirSync(projectsDir) : [];
+      // Only 'default' should remain — no leftover UUID-named directory from
+      // the rename that got rolled back, and no index.json (write never
+      // reached the rename-over step).
+      expect(entries).toEqual(['default']);
+    });
+
+    it('does not create index.json when the index write fails', () => {
+      seedDefaultProject();
+
+      migrateDefaultProject(dataDir, {
+        writeFileSync: () => {
+          throw new Error('ENOSPC: disk full');
+        },
+      });
+
+      expect(existsSync(indexFilePath(dataDir))).toBe(false);
+    });
+
+    it('lets the next launch retry and succeed after a rolled-back failure', () => {
+      seedDefaultProject();
+      migrateDefaultProject(dataDir, {
+        writeFileSync: () => {
+          throw new Error('ENOSPC: disk full');
+        },
+      });
+
+      const retry = migrateDefaultProject(dataDir);
+
+      expect(retry.migrated).toBe(true);
+      expect(retry.project?.name).toBe('내 연구 1');
+      const newPaths = resolveProjectPaths(dataDir, retry.project!.id);
+      expect(existsSync(newPaths.memoryFile)).toBe(true);
+      const content = JSON.parse(readFileSync(newPaths.memoryFile, 'utf-8'));
+      expect(content.researchQuestion).toBe('Sprint 1 데이터');
+    });
+  });
+
   describe('error handling (NFR-OPS-003: 실패=결과값)', () => {
     it('never throws and returns an error result with a Korean user message', () => {
       const result = migrateDefaultProject(dataDir, {

@@ -27,7 +27,7 @@ import {
   type ResearchHistoryRemoveResult,
 } from '../../shared/ipc/researchHistory';
 import type { ResearchFailedSourcePayload, ResearchPaperPayload } from '../../shared/ipc/research';
-import { INVALID_REQUEST_MESSAGE, isBoundedString } from './guards';
+import { INVALID_REQUEST_MESSAGE, isSafeRecordId } from './guards';
 
 export interface ResearchHistoryHandlerDeps {
   /**
@@ -38,9 +38,6 @@ export interface ResearchHistoryHandlerDeps {
    */
   getResearchDir: () => string;
 }
-
-/** UUIDs are 36 chars; generous bound keeps this a cheap sanity check, not a format validator. */
-const MAX_ID_LENGTH = 200;
 
 /** Registers `research-history:list`, `research-history:get`, `research-history:remove`. */
 export function registerResearchHistoryHandlers(deps: ResearchHistoryHandlerDeps): void {
@@ -54,7 +51,7 @@ export function registerResearchHistoryHandlers(deps: ResearchHistoryHandlerDeps
   ipcMain.handle(
     ResearchHistoryChannels.RESEARCH_HISTORY_GET,
     async (_event, payload: ResearchHistoryGetRequest): Promise<ResearchHistoryGetResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 
@@ -67,7 +64,7 @@ export function registerResearchHistoryHandlers(deps: ResearchHistoryHandlerDeps
   ipcMain.handle(
     ResearchHistoryChannels.RESEARCH_HISTORY_REMOVE,
     async (_event, payload: ResearchHistoryRemoveRequest): Promise<ResearchHistoryRemoveResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 

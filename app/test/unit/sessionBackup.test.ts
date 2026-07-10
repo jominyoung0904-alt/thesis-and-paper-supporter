@@ -92,8 +92,8 @@ describe('runSessionBackup', () => {
     expect(result.reason).toBeTruthy();
   });
 
-  it('prunes old backups once the spawned process closes, keeping only maxBackups newest', () => {
-    let closeHandler: (() => void) | undefined;
+  it('prunes old backups once the spawned process closes with exit code 0, keeping only maxBackups newest', () => {
+    let closeHandler: ((code: number) => void) | undefined;
     mkdirSync(backupsDir, { recursive: true });
     for (let i = 1; i <= 6; i += 1) {
       writeFileSync(join(backupsDir, `backup-2026070${i}-000000.zip`), '', 'utf-8');
@@ -106,7 +106,7 @@ describe('runSessionBackup', () => {
       spawnFn: () => ({
         on: (event, cb) => {
           if (event === 'close') {
-            closeHandler = cb as () => void;
+            closeHandler = cb as (code: number) => void;
           }
         },
         unref: () => undefined,
@@ -114,11 +114,71 @@ describe('runSessionBackup', () => {
     });
 
     expect(closeHandler).toBeDefined();
-    closeHandler?.();
+    closeHandler?.(0);
 
     const remaining = readdirSync(backupsDir).filter((name) => name.startsWith('backup-'));
     expect(remaining).toHaveLength(5);
     expect(remaining).not.toContain('backup-20260701-000000.zip');
+  });
+
+  // L-1 (SPEC-TSA-002 Phase 4 review): a non-zero exit must not prune older
+  // (good) backups, and should best-effort delete the failed/partial zip.
+  it('does NOT prune when the spawned process closes with a non-zero exit code', () => {
+    let closeHandler: ((code: number) => void) | undefined;
+    mkdirSync(backupsDir, { recursive: true });
+    for (let i = 1; i <= 6; i += 1) {
+      writeFileSync(join(backupsDir, `backup-2026070${i}-000000.zip`), '', 'utf-8');
+    }
+
+    const result = runSessionBackup({
+      dataDir,
+      backupsDir,
+      maxBackups: 5,
+      spawnFn: () => ({
+        on: (event, cb) => {
+          if (event === 'close') {
+            closeHandler = cb as (code: number) => void;
+          }
+        },
+        unref: () => undefined,
+      }),
+    });
+
+    // Simulate the failed run's own (partial) zip existing at its expected path.
+    writeFileSync(result.zipPath!, '', 'utf-8');
+
+    expect(closeHandler).toBeDefined();
+    closeHandler?.(1);
+
+    const remaining = readdirSync(backupsDir).filter((name) => name.startsWith('backup-'));
+    // All 6 pre-existing backups survive — pruning never ran.
+    expect(remaining).toContain('backup-20260701-000000.zip');
+    // The failed run's own zip was best-effort cleaned up.
+    expect(existsSync(result.zipPath!)).toBe(false);
+  });
+
+  it('never throws when best-effort cleanup of a failed zip itself fails', () => {
+    let closeHandler: ((code: number) => void) | undefined;
+
+    expect(() => {
+      runSessionBackup({
+        dataDir,
+        backupsDir,
+        spawnFn: () => ({
+          on: (event, cb) => {
+            if (event === 'close') {
+              closeHandler = cb as (code: number) => void;
+            }
+          },
+          unref: () => undefined,
+        }),
+      });
+      // zipPath was never actually written (existsSync is false), so the
+      // cleanup branch's existsSync check is false and unlinkSync is never
+      // reached — this still exercises the non-zero-exit path end-to-end
+      // without throwing.
+      closeHandler?.(1);
+    }).not.toThrow();
   });
 });
 
@@ -188,6 +248,40 @@ describe('buildCompressArchiveArgs (real PowerShell integration)', () => {
     writeFileSync(join(dataDir, 'memory.json'), '{"researchQuestion":"real test"}', 'utf-8');
 
     const zipPath = join(backupsDir, 'backup-real-test.zip');
+    const { command, args } = buildCompressArchiveArgs(dataDir, zipPath);
+
+    const result = spawnSync(command, args, { stdio: 'pipe' });
+
+    try {
+      expect(result.status).toBe(0);
+      expect(existsSync(zipPath)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+// M-1 (SPEC-TSA-002 Phase 4 review): a path containing an apostrophe (e.g. a
+// Windows user profile like `C:\Users\O'Brien\...`) must not break out of the
+// PowerShell single-quoted `-Path`/`-DestinationPath` argument.
+describe('buildCompressArchiveArgs (apostrophe-path escaping, M-1)', () => {
+  it('doubles a single quote in dataDir/zipPath before interpolating into the command', () => {
+    const { args } = buildCompressArchiveArgs("C:\\Users\\O'Brien\\data", "C:\\Users\\O'Brien\\backups\\b.zip");
+
+    const commandArg = args[args.length - 1] ?? '';
+    expect(commandArg).toContain("O''Brien");
+    expect(commandArg).not.toContain("O'Brien\\data'"); // unescaped form would end the quoted string early
+  });
+
+  it('produces a command that Compress-Archive executes successfully against a real apostrophe path', () => {
+    const root = mkdtempSync(join(tmpdir(), 'tsa-backup-apostrophe-test-'));
+    const dataDir = join(root, "O'Brien-data");
+    const backupsDir = join(root, "O'Brien-backups");
+    mkdirSync(dataDir, { recursive: true });
+    mkdirSync(backupsDir, { recursive: true });
+    writeFileSync(join(dataDir, 'memory.json'), '{"researchQuestion":"apostrophe path test"}', 'utf-8');
+
+    const zipPath = join(backupsDir, "backup-o'brien-real-test.zip");
     const { command, args } = buildCompressArchiveArgs(dataDir, zipPath);
 
     const result = spawnSync(command, args, { stdio: 'pipe' });

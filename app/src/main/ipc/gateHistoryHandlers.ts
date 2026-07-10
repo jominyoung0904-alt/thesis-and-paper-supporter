@@ -26,7 +26,7 @@ import {
   type GateHistoryRemoveRequest,
   type GateHistoryRemoveResult,
 } from '../../shared/ipc/gateHistory';
-import { INVALID_REQUEST_MESSAGE, isBoundedString } from './guards';
+import { INVALID_REQUEST_MESSAGE, isSafeRecordId } from './guards';
 
 export interface GateHistoryHandlerDeps {
   /**
@@ -37,9 +37,6 @@ export interface GateHistoryHandlerDeps {
    */
   getGateDir: () => string;
 }
-
-/** UUIDs are 36 chars; generous bound keeps this a cheap sanity check, not a format validator. */
-const MAX_ID_LENGTH = 200;
 
 /** Registers `gate-history:list`, `gate-history:get`, `gate-history:remove`. */
 export function registerGateHistoryHandlers(deps: GateHistoryHandlerDeps): void {
@@ -53,7 +50,7 @@ export function registerGateHistoryHandlers(deps: GateHistoryHandlerDeps): void 
   ipcMain.handle(
     GateHistoryChannels.GATE_HISTORY_GET,
     async (_event, payload: GateHistoryGetRequest): Promise<GateHistoryGetResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 
@@ -66,7 +63,7 @@ export function registerGateHistoryHandlers(deps: GateHistoryHandlerDeps): void 
   ipcMain.handle(
     GateHistoryChannels.GATE_HISTORY_REMOVE,
     async (_event, payload: GateHistoryRemoveRequest): Promise<GateHistoryRemoveResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 

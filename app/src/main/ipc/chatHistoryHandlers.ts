@@ -29,10 +29,7 @@ import type {
   IpcChatSessionSummary,
 } from '../../shared/ipc/chatHistory';
 import type { ConversationManagerHolder } from './guards';
-import { isBoundedString } from './guards';
-
-/** Session ids are UUIDs; this bound just rejects obviously-malformed payloads before a filesystem lookup. */
-const MAX_SESSION_ID_LENGTH = 200;
+import { isSafeRecordId } from './guards';
 
 /**
  * Mutable holder for "which saved session (if any) the live conversation
@@ -82,8 +79,9 @@ function toIpcMessages(messages: readonly ChatMessage[]): IpcChatMessage[] {
   return messages.map((m) => ({ role: m.role, content: m.content, at: m.at }));
 }
 
+/** Session ids are `randomUUID()` output — delegates to the shared record-id guard (audit H1). */
 function isValidId(value: unknown): value is string {
-  return isBoundedString(value, MAX_SESSION_ID_LENGTH);
+  return isSafeRecordId(value);
 }
 
 /** Registers `chat-history:list`, `chat-history:load`, `chat-history:new`, `chat-history:remove`. */

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -177,6 +177,32 @@ describe('ChatSessionStore', () => {
       const store = new ChatSessionStore(chatsDir);
 
       expect(store.remove('missing-id')).toBe(false);
+    });
+  });
+
+  describe('path-escape id rejection (audit H1 defense-in-depth)', () => {
+    it('get() never reads a file outside chatsDir for a "../.." id', () => {
+      const store = new ChatSessionStore(chatsDir);
+      store.createSession('질문');
+      // chatsDir = workDir/chats — '../secret' would resolve to
+      // workDir/secret.json, a sibling file this store must never reach.
+      const escapeTarget = join(chatsDir, '..', 'secret.json');
+      mkdirSync(dirname(escapeTarget), { recursive: true });
+      writeFileSync(escapeTarget, JSON.stringify({ sentinel: true }), 'utf-8');
+
+      expect(store.get('../secret')).toBeUndefined();
+      expect(existsSync(escapeTarget)).toBe(true);
+    });
+
+    it('remove() never deletes a file outside chatsDir for a "../.." id', () => {
+      const store = new ChatSessionStore(chatsDir);
+      const escapeTarget = join(chatsDir, '..', 'secret.json');
+      mkdirSync(dirname(escapeTarget), { recursive: true });
+      writeFileSync(escapeTarget, JSON.stringify({ sentinel: true }), 'utf-8');
+
+      expect(store.remove('../secret')).toBe(false);
+
+      expect(existsSync(escapeTarget)).toBe(true);
     });
   });
 

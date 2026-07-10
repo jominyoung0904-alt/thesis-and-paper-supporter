@@ -22,6 +22,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { isSafeRecordId } from '../persistence/recordId';
 import type { ChatSession, ChatSessionSummary } from './sessionModel';
 import { createChatSession, isChatSession, toSummary } from './sessionModel';
 import type { ChatMessage } from './types';
@@ -66,8 +67,10 @@ export class ChatSessionStore {
     return this.readSession(id);
   }
 
-  /** Deletes a session's file. Returns `false` when the file did not exist. */
+  /** Deletes a session's file. Returns `false` when the file did not exist or `id` is unsafe (audit H1 defense-in-depth). */
   remove(id: string): boolean {
+    if (!isSafeRecordId(id)) return false;
+
     const filePath = this.sessionFilePath(id);
     if (!existsSync(filePath)) return false;
     rmSync(filePath);
@@ -90,8 +93,13 @@ export class ChatSessionStore {
     return join(this.chatsDir, `${id}${SESSION_FILE_EXT}`);
   }
 
-  /** Reads and validates a single session file. Never throws — corruption is treated as "not found". */
+  /**
+   * Reads and validates a single session file. Never throws — corruption
+   * (and an unsafe id — audit H1 defense-in-depth) is treated as "not found".
+   */
   private readSession(id: string): ChatSession | undefined {
+    if (!isSafeRecordId(id)) return undefined;
+
     const filePath = this.sessionFilePath(id);
     if (!existsSync(filePath)) return undefined;
 

@@ -17,6 +17,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { isSafeRecordId } from '../persistence/recordId';
 import type { DeepResearchResult } from '../research-pipeline/types';
 import type { ResearchRecord, ResearchRecordSummary } from './model';
 import { createResearchRecord, isResearchRecord, toResearchRecordSummary } from './model';
@@ -64,8 +65,10 @@ export class ResearchHistoryStore {
       .sort((a, b) => b.ranAt.localeCompare(a.ranAt));
   }
 
-  /** Loads a single full record by id. Returns undefined when missing or corrupted. */
+  /** Loads a single full record by id. Returns undefined when missing, corrupted, or an unsafe id (audit H1 defense-in-depth). */
   get(id: string): ResearchRecord | undefined {
+    if (!isSafeRecordId(id)) return undefined;
+
     const filePath = this.recordFilePath(id);
     if (!existsSync(filePath)) return undefined;
 
@@ -79,8 +82,10 @@ export class ResearchHistoryStore {
     return isResearchRecord(parsed) ? parsed : undefined;
   }
 
-  /** Deletes a record's file. Returns false when the record does not exist. */
+  /** Deletes a record's file. Returns false when the record does not exist or `id` is unsafe (audit H1 defense-in-depth). */
   remove(id: string): boolean {
+    if (!isSafeRecordId(id)) return false;
+
     const filePath = this.recordFilePath(id);
     if (!existsSync(filePath)) return false;
     unlinkSync(filePath);

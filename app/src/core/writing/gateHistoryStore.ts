@@ -15,6 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { isSafeRecordId } from '../persistence/recordId';
 import type { GateResult } from './qualityGate';
 
 /** Keep at most this many records per project; oldest are pruned on every add(). */
@@ -115,8 +116,10 @@ export class GateHistoryStore {
     return record ? this.toPublicRecord(record) : undefined;
   }
 
-  /** Deletes the record file for `id`. Returns false when no such record exists. */
+  /** Deletes the record file for `id`. Returns false when no such record exists or `id` is unsafe (audit H1 defense-in-depth). */
   remove(id: string): boolean {
+    if (!isSafeRecordId(id)) return false;
+
     const filePath = this.recordPath(id);
     if (!existsSync(filePath)) return false;
     unlinkSync(filePath);
@@ -142,7 +145,10 @@ export class GateHistoryStore {
     renameSync(tmpPath, filePath);
   }
 
+  /** Returns undefined for a missing record, an unparsable/malformed file, or an unsafe id (audit H1 defense-in-depth). */
   private readRecord(id: string): StoredGateRecord | undefined {
+    if (!isSafeRecordId(id)) return undefined;
+
     const filePath = this.recordPath(id);
     if (!existsSync(filePath)) return undefined;
     return this.parseRecordFile(filePath);

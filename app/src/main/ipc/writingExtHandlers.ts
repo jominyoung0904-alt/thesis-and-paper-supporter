@@ -43,7 +43,7 @@ import {
   type WritingPolishRequest,
   type WritingPolishResult,
 } from '../../shared/ipc/writingExt';
-import { INVALID_REQUEST_MESSAGE, isBoundedString } from './guards';
+import { INVALID_REQUEST_MESSAGE, isBoundedString, isSafeRecordId } from './guards';
 import { NO_KEY_MESSAGE } from './llmService';
 import type { LlmService } from './llmService';
 
@@ -65,8 +65,6 @@ export interface WritingExtHandlerDeps {
 }
 
 const MAX_TEXT_LENGTH = 50_000;
-/** UUIDs are 36 chars; generous bound keeps this a cheap sanity check, not a format validator. */
-const MAX_ID_LENGTH = 200;
 
 /** Registers `writing:polish`, `writing:mock-review`, and `writing:mock-review-history:*`. */
 export function registerWritingExtHandlers(deps: WritingExtHandlerDeps): void {
@@ -130,7 +128,7 @@ export function registerWritingExtHandlers(deps: WritingExtHandlerDeps): void {
   ipcMain.handle(
     WritingExtChannels.MOCK_REVIEW_HISTORY_GET,
     async (_event, payload: MockReviewHistoryGetRequest): Promise<MockReviewHistoryGetResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 
@@ -143,7 +141,7 @@ export function registerWritingExtHandlers(deps: WritingExtHandlerDeps): void {
   ipcMain.handle(
     WritingExtChannels.MOCK_REVIEW_HISTORY_REMOVE,
     async (_event, payload: MockReviewHistoryRemoveRequest): Promise<MockReviewHistoryRemoveResult> => {
-      if (!isBoundedString(payload?.id, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.id)) {
         throw new Error(INVALID_REQUEST_MESSAGE);
       }
 

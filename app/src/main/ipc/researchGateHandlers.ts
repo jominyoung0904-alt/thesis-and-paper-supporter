@@ -60,9 +60,15 @@ export interface ResearchGateHandlerDeps {
   getGateDir: () => string;
   /**
    * Returns the ACTIVE project's deep-research checkpoint file path
-   * (FR-RES-007/008). Re-invoked on every call — same pattern as
-   * `getMemoryStore`, so a project switch mid-run is never possible to
-   * straddle across two projects' checkpoint files.
+   * (FR-RES-007/008). Like `getMemoryStore`, this accessor returns whichever
+   * project is active AT CALL TIME — it does not itself guarantee anything
+   * about a single `research:run` execution staying pinned to one project.
+   * That atomicity guarantee is the handler's responsibility: it snapshots
+   * this (and `getResearchDir`) exactly once at handler entry, before the
+   * `await runDeepResearch(...)` below, so a project switch that happens
+   * while a run is still in flight can never make that single execution's
+   * checkpoint/history writes straddle two different projects' directories
+   * (H2, SPEC-TSA-002 Phase 4 review).
    */
   getCheckpointFile: () => string;
 }
@@ -91,6 +97,18 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
         throw new Error(NO_KEY_MESSAGE);
       }
 
+      // H2 fix (SPEC-TSA-002 Phase 4 review): snapshot the active project's
+      // paths ONCE here, at handler entry — NOT re-resolved via
+      // getResearchDir()/getCheckpointFile() later inside the checkpoint
+      // callbacks or after the `await` below. Those accessors always return
+      // whichever project is active at the moment they're called; re-calling
+      // them mid-run would let a project switch that happens while this run
+      // is still in flight silently redirect this SAME execution's
+      // checkpoint saves and history record into the NEWLY active project's
+      // directories instead of the one this run actually started against.
+      const researchDir = getResearchDir();
+      const checkpointFile = getCheckpointFile();
+
       const clients = buildAcademicClients(getSettings(), keyStore);
 
       try {
@@ -103,19 +121,19 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
           onProgress: (progressEvent: ResearchProgressPayload) => {
             event.sender.send(IpcChannels.RESEARCH_PROGRESS, progressEvent);
           },
-          // FR-RES-007/008: file-bound resume hooks — re-resolves the active
-          // project's checkpoint file on every call via getCheckpointFile(),
-          // same re-invocation pattern as getMemoryStore/getResearchDir above.
+          // FR-RES-007/008: file-bound resume hooks — bound to the
+          // entry-time `checkpointFile` snapshot above, never re-resolved.
           checkpoint: {
-            load: () => loadCheckpoint(getCheckpointFile()),
-            save: (state) => saveCheckpoint(getCheckpointFile(), state),
-            clear: () => clearCheckpoint(getCheckpointFile()),
+            load: () => loadCheckpoint(checkpointFile),
+            save: (state) => saveCheckpoint(checkpointFile, state),
+            clear: () => clearCheckpoint(checkpointFile),
           },
         });
         // Auto-save (FR-RSH-001): saveResearchRecord() owns its own
         // try/catch and only ever logs — it can never throw here and never
-        // delays/replaces the response returned below.
-        saveResearchRecord(getResearchDir(), payload.question, result);
+        // delays/replaces the response returned below. Uses the entry-time
+        // `researchDir` snapshot above (H2), not a fresh getResearchDir() call.
+        saveResearchRecord(researchDir, payload.question, result);
         return mapDeepResearchResult(result);
       } catch (err) {
         throw new Error(translateLlmError(err).message);
@@ -136,14 +154,21 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
         throw new Error(NO_KEY_MESSAGE);
       }
 
+      // H2 fix: snapshot the active project's gate dir ONCE here, at handler
+      // entry — same race rationale as research:run above. getGateDir() must
+      // not be re-called after the `await` below.
+      const gateDir = getGateDir();
+
       try {
         const result = await runQualityGate(definition, payload.text, {
           llm: llmService.getAdapter(),
           model: llmService.getModel(),
           memory: serializeMemoryForPrompt(getMemoryStore().getSnapshot()),
         });
-        // FR-WRT-008: save-on-success, never blocks/throws on failure.
-        saveGateRecord(getGateDir(), payload.sectionId, payload.text, result);
+        // FR-WRT-008: save-on-success, never blocks/throws on failure. Uses
+        // the entry-time `gateDir` snapshot above (H2), not a fresh
+        // getGateDir() call.
+        saveGateRecord(gateDir, payload.sectionId, payload.text, result);
         return result;
       } catch (err) {
         throw new Error(translateLlmError(err).message);

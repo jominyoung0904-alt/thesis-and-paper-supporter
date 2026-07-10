@@ -29,6 +29,10 @@
  * Failure contract — "실패=결과값" (NFR-OPS-003): every failure path returns
  * a `BackupResult` with `ok: false` and a `reason`; nothing here ever throws
  * past its own boundary, and nothing here may block app startup.
+ *
+ * Scope (I-1, SPEC-TSA-002 Phase 4 review): the backup zip does NOT preserve
+ * per-project isolation — it archives the entirety of `dataDir` (i.e. every
+ * project under `data/projects/`), not just the currently active one.
  */
 
 import { spawn as nodeSpawn } from 'node:child_process';
@@ -83,18 +87,33 @@ function formatBackupTimestamp(date: Date): string {
 }
 
 /**
+ * Escapes a path fragment for safe interpolation inside a PowerShell
+ * single-quoted string literal (M-1, SPEC-TSA-002 Phase 4 review):
+ * PowerShell's single-quoted strings treat `'` as literal EXCEPT that a
+ * doubled `''` is the escape sequence for one literal `'`. Without this, a
+ * path containing an apostrophe (e.g. a Windows user profile directory like
+ * `C:\Users\O'Brien\...`) would prematurely terminate the quoted `-Path`/
+ * `-DestinationPath` argument and corrupt the generated command.
+ */
+function escapePowerShellSingleQuoted(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+/**
  * Builds the PowerShell command that zips `dataDir`'s contents into
  * `zipPath`. Exported (in addition to being used internally) so tests can
  * exercise the exact command against a real `Compress-Archive` invocation
  * without going through the detached-spawn path in `runSessionBackup`.
  */
 export function buildCompressArchiveArgs(dataDir: string, zipPath: string): { command: string; args: string[] } {
+  const escapedDataGlob = escapePowerShellSingleQuoted(join(dataDir, '*'));
+  const escapedZipPath = escapePowerShellSingleQuoted(zipPath);
   return {
     command: 'powershell.exe',
     args: [
       '-NoProfile',
       '-Command',
-      `Compress-Archive -Path '${join(dataDir, '*')}' -DestinationPath '${zipPath}' -Force`,
+      `Compress-Archive -Path '${escapedDataGlob}' -DestinationPath '${escapedZipPath}' -Force`,
     ],
   };
 }
@@ -131,8 +150,25 @@ export function runSessionBackup(options: RunSessionBackupOptions): BackupResult
 
   try {
     const child = spawnFn(command, args, { detached: true, stdio: 'ignore', windowsHide: true });
-    child.on('close', () => {
-      pruneOldBackups(backupsDir, maxBackups);
+    // L-1 (SPEC-TSA-002 Phase 4 review): only prune on a clean exit — pruning
+    // after an abnormal exit (non-zero code, killed by signal) could delete
+    // good older backups while leaving behind a failed/partial zip from THIS
+    // run, net-shrinking the retained backup set for no benefit.
+    child.on('close', (code) => {
+      if (code === 0) {
+        pruneOldBackups(backupsDir, maxBackups);
+        return;
+      }
+      console.error(`[backup] Compress-Archive exited abnormally (code: ${String(code)})`);
+      // Best-effort cleanup of a failed/partial zip — failure here is logged
+      // only, never thrown (NFR-OPS-003).
+      try {
+        if (existsSync(zipPath)) {
+          unlinkSync(zipPath);
+        }
+      } catch (cleanupError) {
+        console.error('[backup] failed to remove a failed backup zip:', cleanupError);
+      }
     });
     child.on('error', (error) => {
       console.error('[backup] Compress-Archive process error:', error);

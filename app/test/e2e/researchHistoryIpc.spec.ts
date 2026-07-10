@@ -195,6 +195,17 @@ describe('research-history:* IPC', () => {
     await expect(harness.invoke(ResearchHistoryChannels.RESEARCH_HISTORY_REMOVE, {})).rejects.toThrow(/잘못된 요청/);
   });
 
+  it('rejects a path-escape id ("../../index") on get and remove without touching any file outside researchDir (audit H1)', async () => {
+    harness = assemble('tsa-research-history-escape-');
+
+    await expect(
+      harness.invoke(ResearchHistoryChannels.RESEARCH_HISTORY_GET, { id: '../../index' }),
+    ).rejects.toThrow(/잘못된 요청/);
+    await expect(
+      harness.invoke(ResearchHistoryChannels.RESEARCH_HISTORY_REMOVE, { id: '../../../../index' }),
+    ).rejects.toThrow(/잘못된 요청/);
+  });
+
   it('isolates records per project — switching the active research dir changes the visible history', async () => {
     harness = assemble('tsa-research-history-isolation-');
     saveResearchRecord(harness.researchDirA, 'A 프로젝트 질문', makeResult());

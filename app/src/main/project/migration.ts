@@ -51,6 +51,8 @@ export interface MigrationResult {
 export interface MigrationFsOverrides {
   existsSync?: typeof existsSync;
   renameSync?: typeof renameSync;
+  /** Injection point for simulating an index-write failure (M2) without touching the directory rename above. */
+  writeFileSync?: typeof writeFileSync;
 }
 
 const MIGRATION_ERROR_MESSAGE =
@@ -65,6 +67,7 @@ const MIGRATION_ERROR_MESSAGE =
 export function migrateDefaultProject(dataDir: string, fsOverrides: MigrationFsOverrides = {}): MigrationResult {
   const exists = fsOverrides.existsSync ?? existsSync;
   const rename = fsOverrides.renameSync ?? renameSync;
+  const writeFile = fsOverrides.writeFileSync ?? writeFileSync;
 
   try {
     const indexPath = indexFilePath(dataDir);
@@ -79,7 +82,7 @@ export function migrateDefaultProject(dataDir: string, fsOverrides: MigrationFsO
       return createFreshIndex(indexPath);
     }
 
-    return absorbDefaultProject(dataDir, indexPath, defaultPaths.root, rename);
+    return absorbDefaultProject(dataDir, indexPath, defaultPaths.root, rename, writeFile);
   } catch {
     return { migrated: false, reason: 'error', userMessage: MIGRATION_ERROR_MESSAGE };
   }
@@ -99,19 +102,35 @@ function createFreshIndex(indexPath: string): MigrationResult {
  * UUID-keyed project. Falls back to keeping the literal `'default'` id (and
  * leaving the directory in place) when the rename fails, e.g. a locked file
  * on Windows — the migration must still complete rather than block startup.
+ *
+ * M2 fix (SPEC-TSA-002 Phase 4 review): if the directory rename above
+ * succeeds but the index write below then fails, the `{uuid}/` directory
+ * would otherwise be left orphaned on disk with no index entry pointing at
+ * it — the NEXT launch would see no index AND no `default/` (branch 3) and
+ * silently create a brand-new empty project, permanently losing the
+ * Sprint 1 data. So a failed index write here rolls the rename back to
+ * `default/` before re-throwing, restoring the exact branch-2 precondition
+ * so the next launch's migration attempt can retry cleanly. If the rollback
+ * rename itself also fails (e.g. still locked), that double failure is
+ * unrecoverable — it is logged only, never thrown again, per NFR-OPS-003
+ * ("실패=결과값"): this function must still surface a plain error result,
+ * not an uncaught exception.
  */
 function absorbDefaultProject(
   dataDir: string,
   indexPath: string,
   defaultRoot: string,
   rename: typeof renameSync,
+  writeFile: typeof writeFileSync,
 ): MigrationResult {
   const candidateId = randomUUID();
   let project: ProjectInfo;
+  let renamedTargetRoot: string | undefined;
 
   try {
     const targetPaths = resolveProjectPaths(dataDir, candidateId);
     rename(defaultRoot, targetPaths.root);
+    renamedTargetRoot = targetPaths.root;
     project = createProjectInfo({ id: candidateId, name: '내 연구 1' });
   } catch {
     project = createProjectInfo({ id: 'default', name: '내 연구 1' });
@@ -120,7 +139,23 @@ function absorbDefaultProject(
   const index = createEmptyProjectIndex();
   index.projects.push(project);
   index.activeProjectId = project.id;
-  writeIndexAtomically(indexPath, index);
+
+  try {
+    writeIndexAtomically(indexPath, index, writeFile);
+  } catch (err) {
+    if (renamedTargetRoot) {
+      try {
+        rename(renamedTargetRoot, defaultRoot);
+      } catch (rollbackErr) {
+        console.error(
+          '[migration] rollback rename failed after index-write failure; orphaned dir:',
+          renamedTargetRoot,
+          rollbackErr,
+        );
+      }
+    }
+    throw err;
+  }
 
   return { migrated: true, project };
 }
@@ -133,9 +168,9 @@ function absorbDefaultProject(
  * directly from `model.ts`'s public builders instead of going through
  * `ProjectIndexStore`.
  */
-function writeIndexAtomically(indexPath: string, index: ProjectIndex): void {
+function writeIndexAtomically(indexPath: string, index: ProjectIndex, writeFile: typeof writeFileSync): void {
   mkdirSync(dirname(indexPath), { recursive: true });
   const tmpPath = `${indexPath}.tmp`;
-  writeFileSync(tmpPath, JSON.stringify(index, null, 2), 'utf-8');
+  writeFile(tmpPath, JSON.stringify(index, null, 2), 'utf-8');
   renameSync(tmpPath, indexPath);
 }

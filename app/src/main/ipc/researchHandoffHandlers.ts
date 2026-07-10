@@ -30,10 +30,7 @@ import {
 } from '../../shared/ipc/researchHandoff';
 import type { ActiveChatSession } from './chatHistoryHandlers';
 import type { ConversationManagerHolder } from './guards';
-import { isBoundedString } from './guards';
-
-/** UUIDs are 36 chars; generous bound mirrors `researchHistoryHandlers.ts`'s MAX_ID_LENGTH. */
-const MAX_ID_LENGTH = 200;
+import { isSafeRecordId } from './guards';
 
 export interface ResearchHandoffHandlerDeps {
   /**
@@ -58,7 +55,7 @@ export function registerResearchHandoffHandlers(deps: ResearchHandoffHandlerDeps
   ipcMain.handle(
     ResearchHandoffChannels.RESEARCH_HANDOFF_START,
     async (_event, payload: ResearchHandoffStartRequest): Promise<ResearchHandoffStartResult> => {
-      if (!isBoundedString(payload?.researchId, MAX_ID_LENGTH)) {
+      if (!isSafeRecordId(payload?.researchId)) {
         return { ok: false, reason: 'not_found' };
       }
 

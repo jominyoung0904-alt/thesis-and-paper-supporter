@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -178,6 +178,33 @@ describe('ResearchHistoryStore', () => {
       const store = new ResearchHistoryStore(researchDir);
 
       expect(store.remove('missing-id')).toBe(false);
+    });
+  });
+
+  describe('path-escape id rejection (audit H1 defense-in-depth)', () => {
+    it('get() never reads a file outside researchDir for a "../.." id', () => {
+      const store = new ResearchHistoryStore(researchDir);
+      store.add('연구 질문 1', makeResult());
+      // researchDir = workDir/projects/p1/research — '../../index' would
+      // resolve to workDir/projects/index.json, a sibling PROJECT INDEX file
+      // this store must never be able to reach.
+      const escapeTarget = join(researchDir, '..', '..', 'index.json');
+      mkdirSync(dirname(escapeTarget), { recursive: true });
+      writeFileSync(escapeTarget, JSON.stringify({ sentinel: true }), 'utf-8');
+
+      expect(store.get('../../index')).toBeUndefined();
+      expect(existsSync(escapeTarget)).toBe(true);
+    });
+
+    it('remove() never deletes a file outside researchDir for a "../.." id', () => {
+      const store = new ResearchHistoryStore(researchDir);
+      const escapeTarget = join(researchDir, '..', '..', 'index.json');
+      mkdirSync(dirname(escapeTarget), { recursive: true });
+      writeFileSync(escapeTarget, JSON.stringify({ sentinel: true }), 'utf-8');
+
+      expect(store.remove('../../index')).toBe(false);
+
+      expect(existsSync(escapeTarget)).toBe(true);
     });
   });
 
