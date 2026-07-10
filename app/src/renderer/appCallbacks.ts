@@ -43,6 +43,10 @@ import type {
 export function createWizardCallbacks(): WizardCallbacks {
   return {
     saveProviderAndKey: (provider, key, mode) => window.thesisApi.saveProviderAndKey(provider, key, mode),
+    // The wizard's naverDoc step only ever registers naverdoc (실사용 피드백
+    // #1) — the provider is hardcoded here rather than threaded through
+    // `WizardCallbacks`, which never needs to know about other providers.
+    saveAcademicKey: (key) => window.thesisApi.saveAcademicKey('naverdoc', key),
     openExternal: (url) => window.thesisApi.openExternal(url),
   };
 }
@@ -88,6 +92,9 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
     openLink: (url) => window.thesisApi.openExternal(url),
 
     startResearchHandoff: (researchId) => window.thesisApi.startResearchHandoff(researchId),
+
+    // Gates the naverdoc-connect info banner in research mode (실사용 피드백 #2).
+    getAcademicKeyStatus: () => window.thesisApi.getAcademicKeyStatus(),
   };
 }
 

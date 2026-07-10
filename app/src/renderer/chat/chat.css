@@ -161,6 +161,58 @@
   font-size: 15px;
 }
 
+/* Naver 전문자료 미연결 info banner (실사용 피드백 #2). Calmer blue
+   informational tone — deliberately distinct from
+   `.chat-slow-response-banner`'s amber warning tone above, since this isn't
+   a "something may be wrong" signal. Shown above `.chat-input-area` in
+   research mode only; see `naverDocBannerLogic.ts` for the exposure rule. */
+.chat-naver-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #1e3a8a;
+  margin: 0;
+  font-size: 15px;
+}
+
+.chat-naver-banner-text {
+  margin: 0;
+  flex: 1;
+}
+
+.chat-naver-banner-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.chat-naver-banner-btn {
+  border: 1px solid #2563eb;
+  background: #fff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.chat-naver-banner-dismiss {
+  border: none;
+  background: none;
+  color: #1e3a8a;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
 /* Always-visible bottom bar (mode toggle + textarea + send button). Never
    shrinks and never scrolls with `.chat-scroll-area` above it (Task T35
    fix#1) — a top border/background keeps it visually distinct from the

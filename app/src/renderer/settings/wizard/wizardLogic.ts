@@ -19,6 +19,16 @@ export interface WizardState {
   saving: boolean;
   /** Korean-language error message to show under the key field, if any. */
   errorMessage: string | null;
+  /** Client ID entered on the `naverDoc` step (실사용 피드백 #1). */
+  naverClientId: string;
+  /** Client Secret entered on the `naverDoc` step. */
+  naverClientSecret: string;
+  /** True while `saveAcademicKey` (naverdoc) is in flight. */
+  naverSaving: boolean;
+  /** Korean-language error message for the `naverDoc` step, if any. */
+  naverErrorMessage: string | null;
+  /** Korean-language success message shown briefly before `Wizard.tsx` calls `onComplete()`. */
+  naverSuccessMessage: string | null;
 }
 
 export function createInitialWizardState(): WizardState {
@@ -29,6 +39,11 @@ export function createInitialWizardState(): WizardState {
     apiKey: '',
     saving: false,
     errorMessage: null,
+    naverClientId: '',
+    naverClientSecret: '',
+    naverSaving: false,
+    naverErrorMessage: null,
+    naverSuccessMessage: null,
   };
 }
 
@@ -40,7 +55,19 @@ export type WizardAction =
   | { type: 'SET_API_KEY'; key: string }
   | { type: 'SAVE_START' }
   | { type: 'SAVE_FAILURE'; message: string }
-  | { type: 'SAVE_SUCCESS' };
+  | { type: 'SAVE_SUCCESS' }
+  | { type: 'SET_NAVER_CLIENT_ID'; value: string }
+  | { type: 'SET_NAVER_CLIENT_SECRET'; value: string }
+  | { type: 'NAVER_SAVE_START' }
+  | { type: 'NAVER_SAVE_FAILURE'; message: string }
+  | { type: 'NAVER_SAVE_SUCCESS'; message: string };
+
+/**
+ * How long `naverSuccessMessage` stays visible before `Wizard.tsx` calls
+ * `onComplete()` — long enough to read "연결됐어요!" before the screen hands
+ * off to the main chat view.
+ */
+export const NAVER_SUCCESS_DISPLAY_MS = 900;
 
 export type ApiKeyValidationReason = 'empty' | 'whitespace' | 'too-short';
 
@@ -93,6 +120,12 @@ export function canProceed(state: WizardState): boolean {
       return true;
     case 'keyInput':
       return validateApiKeyFormat(state.apiKey).ok;
+    case 'naverDoc':
+      // Always skippable — the naverdoc connect step is entirely optional
+      // (실사용 피드백 #1). This branch is only reached if some future caller
+      // ever renders a generic "다음" button here; `Wizard.tsx` itself hides
+      // it in favor of the step's own [연결하기]/[나중에 할게요] buttons.
+      return true;
     default:
       return false;
   }
@@ -141,8 +174,26 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       return { ...state, saving: true, errorMessage: null };
     case 'SAVE_FAILURE':
       return { ...state, saving: false, errorMessage: action.message };
-    case 'SAVE_SUCCESS':
-      return { ...state, saving: false, errorMessage: null };
+    case 'SAVE_SUCCESS': {
+      // Advances to the next step (`naverDoc`) instead of leaving `step`
+      // untouched — `Wizard.tsx` used to call `onComplete()` directly right
+      // after this action, but the LLM key save is no longer the wizard's
+      // last step (실사용 피드백 #1). Falls back to staying put if there is
+      // somehow no next step, so this never throws on an out-of-range index.
+      const nextIndex = stepIndex(state.step) + 1;
+      const nextStep = nextIndex < WIZARD_STEPS.length ? WIZARD_STEPS[nextIndex]! : state.step;
+      return { ...state, saving: false, errorMessage: null, step: nextStep };
+    }
+    case 'SET_NAVER_CLIENT_ID':
+      return { ...state, naverClientId: action.value, naverErrorMessage: null };
+    case 'SET_NAVER_CLIENT_SECRET':
+      return { ...state, naverClientSecret: action.value, naverErrorMessage: null };
+    case 'NAVER_SAVE_START':
+      return { ...state, naverSaving: true, naverErrorMessage: null, naverSuccessMessage: null };
+    case 'NAVER_SAVE_FAILURE':
+      return { ...state, naverSaving: false, naverErrorMessage: action.message };
+    case 'NAVER_SAVE_SUCCESS':
+      return { ...state, naverSaving: false, naverErrorMessage: null, naverSuccessMessage: action.message };
     default:
       return state;
   }

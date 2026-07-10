@@ -170,6 +170,7 @@ export function App(): JSX.Element {
           callbacks={createChatScreenCallbacks()}
           pendingHandoff={pendingHandoff}
           onHandoffConsumed={() => setPendingHandoff(null)}
+          onNavigateToSettings={() => setMainTab('settings')}
         />
       )}
       {mainTab === 'research' && (

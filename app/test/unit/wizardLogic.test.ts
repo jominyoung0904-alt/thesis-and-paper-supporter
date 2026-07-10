@@ -4,6 +4,7 @@ import {
   apiKeyValidationMessage,
   canProceed,
   createInitialWizardState,
+  NAVER_SUCCESS_DISPLAY_MS,
   validateApiKeyFormat,
   wizardReducer,
   type WizardState,
@@ -19,6 +20,11 @@ describe('createInitialWizardState', () => {
       apiKey: '',
       saving: false,
       errorMessage: null,
+      naverClientId: '',
+      naverClientSecret: '',
+      naverSaving: false,
+      naverErrorMessage: null,
+      naverSuccessMessage: null,
     });
   });
 });
@@ -37,7 +43,7 @@ describe('step transitions', () => {
     expect(blocked.step).toBe('mode');
   });
 
-  it('walks the full happy path welcome -> mode -> keyGuide -> keyInput', () => {
+  it('walks the full happy path welcome -> mode -> keyGuide -> keyInput -> naverDoc via SAVE_SUCCESS', () => {
     let state = createInitialWizardState();
     state = wizardReducer(state, { type: 'NEXT' }); // welcome -> mode
     state = wizardReducer(state, { type: 'SELECT_MODE', mode: 'free' });
@@ -45,18 +51,23 @@ describe('step transitions', () => {
     expect(state.step).toBe('keyGuide');
     state = wizardReducer(state, { type: 'NEXT' }); // keyGuide -> keyInput
     expect(state.step).toBe('keyInput');
+    // The LLM key confirm button dispatches SAVE_SUCCESS (not NEXT) — it now
+    // advances to `naverDoc` instead of completing the wizard directly
+    // (실사용 피드백 #1; see `Wizard.tsx`'s `handleConfirmKey`).
+    state = wizardReducer(state, { type: 'SAVE_SUCCESS' });
+    expect(state.step).toBe('naverDoc');
   });
 
-  it('does not advance past the last step (keyInput) on NEXT', () => {
+  it('does not advance past the last step (naverDoc) on NEXT', () => {
     let state: WizardState = {
       ...createInitialWizardState(),
-      step: 'keyInput',
+      step: 'naverDoc',
       mode: 'free',
       provider: 'gemini',
       apiKey: 'a-valid-key-123',
     };
     state = wizardReducer(state, { type: 'NEXT' });
-    expect(state.step).toBe('keyInput');
+    expect(state.step).toBe('naverDoc');
   });
 
   it('does nothing on BACK from the first step', () => {
@@ -153,6 +164,10 @@ describe('canProceed', () => {
       canProceed({ ...createInitialWizardState(), step: 'keyInput', apiKey: 'a-valid-key-123' }),
     ).toBe(true);
   });
+
+  it('is always true on the naverDoc step — it is skippable regardless of input', () => {
+    expect(canProceed({ ...createInitialWizardState(), step: 'naverDoc' })).toBe(true);
+  });
 });
 
 describe('save lifecycle', () => {
@@ -181,7 +196,7 @@ describe('save lifecycle', () => {
     expect(after.errorMessage).toBe('키가 올바르지 않아요.');
   });
 
-  it('SAVE_SUCCESS clears saving and error state', () => {
+  it('SAVE_SUCCESS clears saving/error state and advances from keyInput to naverDoc', () => {
     const before: WizardState = {
       ...createInitialWizardState(),
       step: 'keyInput',
@@ -191,5 +206,69 @@ describe('save lifecycle', () => {
     const after = wizardReducer(before, { type: 'SAVE_SUCCESS' });
     expect(after.saving).toBe(false);
     expect(after.errorMessage).toBeNull();
+    expect(after.step).toBe('naverDoc');
+  });
+
+  it('SAVE_SUCCESS on the last step (naverDoc) stays put instead of advancing out of range', () => {
+    const before: WizardState = { ...createInitialWizardState(), step: 'naverDoc', saving: true };
+    const after = wizardReducer(before, { type: 'SAVE_SUCCESS' });
+    expect(after.step).toBe('naverDoc');
+  });
+});
+
+describe('naverDoc step lifecycle (실사용 피드백 #1)', () => {
+  it('SET_NAVER_CLIENT_ID/SECRET update their fields and clear any prior error', () => {
+    let state: WizardState = { ...createInitialWizardState(), step: 'naverDoc', naverErrorMessage: 'old error' };
+    state = wizardReducer(state, { type: 'SET_NAVER_CLIENT_ID', value: 'my-client-id' });
+    expect(state.naverClientId).toBe('my-client-id');
+    expect(state.naverErrorMessage).toBeNull();
+
+    state = { ...state, naverErrorMessage: 'old error again' };
+    state = wizardReducer(state, { type: 'SET_NAVER_CLIENT_SECRET', value: 'my-secret' });
+    expect(state.naverClientSecret).toBe('my-secret');
+    expect(state.naverErrorMessage).toBeNull();
+  });
+
+  it('NAVER_SAVE_START marks naverSaving and clears any prior error/success message', () => {
+    const before: WizardState = {
+      ...createInitialWizardState(),
+      step: 'naverDoc',
+      naverErrorMessage: 'old error',
+      naverSuccessMessage: 'stale success',
+    };
+    const after = wizardReducer(before, { type: 'NAVER_SAVE_START' });
+    expect(after.naverSaving).toBe(true);
+    expect(after.naverErrorMessage).toBeNull();
+    expect(after.naverSuccessMessage).toBeNull();
+  });
+
+  it('NAVER_SAVE_FAILURE clears naverSaving and surfaces the message, preserving entered input', () => {
+    const before: WizardState = {
+      ...createInitialWizardState(),
+      step: 'naverDoc',
+      naverClientId: 'id-1',
+      naverClientSecret: 'secret-1',
+      naverSaving: true,
+    };
+    const after = wizardReducer(before, { type: 'NAVER_SAVE_FAILURE', message: 'Client ID/Secret을 다시 확인해 주세요.' });
+    expect(after.naverSaving).toBe(false);
+    expect(after.naverErrorMessage).toBe('Client ID/Secret을 다시 확인해 주세요.');
+    expect(after.naverClientId).toBe('id-1');
+    expect(after.naverClientSecret).toBe('secret-1');
+  });
+
+  it('NAVER_SAVE_SUCCESS clears naverSaving/error and surfaces the success message', () => {
+    const before: WizardState = { ...createInitialWizardState(), step: 'naverDoc', naverSaving: true };
+    const after = wizardReducer(before, { type: 'NAVER_SAVE_SUCCESS', message: '연결됐어요!' });
+    expect(after.naverSaving).toBe(false);
+    expect(after.naverErrorMessage).toBeNull();
+    expect(after.naverSuccessMessage).toBe('연결됐어요!');
+  });
+});
+
+describe('NAVER_SUCCESS_DISPLAY_MS', () => {
+  it('is a short, positive delay so the success message is briefly visible', () => {
+    expect(NAVER_SUCCESS_DISPLAY_MS).toBeGreaterThan(0);
+    expect(NAVER_SUCCESS_DISPLAY_MS).toBeLessThan(3000);
   });
 });

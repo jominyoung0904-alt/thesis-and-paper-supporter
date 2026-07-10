@@ -129,6 +129,26 @@
   margin-bottom: 12px;
 }
 
+/* naverDoc step (실사용 피드백 #1). */
+.wizard-naver-lead {
+  margin-bottom: 16px;
+}
+
+.wizard-key-field-dual {
+  flex-direction: column;
+}
+
+.wizard-hint-success {
+  color: #15803d;
+  margin-bottom: 12px;
+}
+
+.wizard-naver-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 .wizard-footnote {
   margin-top: 24px;
   font-size: 15px;

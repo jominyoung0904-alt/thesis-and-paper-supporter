@@ -27,12 +27,22 @@ export interface SaveKeyResult {
 
 /**
  * Host-provided callbacks. Kept minimal on purpose: this sprint only covers
- * provider selection + key entry (NFR-LLM-002/006 partial). Academic key
- * registration (NFR-ACAPI-002) is out of scope and deferred to Settings.
+ * provider selection + key entry (NFR-LLM-002/006 partial), plus the
+ * naverdoc academic-search connect step added by 실사용 피드백 #1 (see
+ * `steps/NaverDocStep.tsx`). Full academic key management (kci/scienceon,
+ * NFR-ACAPI-002) stays out of scope and deferred to Settings.
  */
 export interface WizardCallbacks {
   /** Persists the chosen provider + API key and verifies connectivity. */
   saveProviderAndKey(provider: LlmProvider, key: string, mode: LlmMode): Promise<SaveKeyResult>;
+  /**
+   * Persists the naverdoc Client ID/Secret pair (already colon-joined by the
+   * caller — see `combineNaverCredential` in `../settingsScreenLogic.ts`)
+   * and verifies connectivity with a live call. Always targets `naverdoc` —
+   * this step never touches kci/scienceon, so no provider argument is
+   * needed.
+   */
+  saveAcademicKey(key: string): Promise<SaveKeyResult>;
   /** Opens a URL in the user's default external browser. */
   openExternal(url: string): void;
 }
@@ -43,8 +53,13 @@ export interface WizardProps {
   onComplete(): void;
 }
 
-/** Wizard step identifiers, in display order. */
-export const WIZARD_STEPS = ['welcome', 'mode', 'keyGuide', 'keyInput'] as const;
+/**
+ * Wizard step identifiers, in display order. `naverDoc` (실사용 피드백 #1)
+ * follows a successful `keyInput` save — the LLM key is already confirmed
+ * working by the time the user reaches it, so this step only ever offers an
+ * *additional*, optional connection on top of that.
+ */
+export const WIZARD_STEPS = ['welcome', 'mode', 'keyGuide', 'keyInput', 'naverDoc'] as const;
 export type WizardStepId = (typeof WIZARD_STEPS)[number];
 
 /** Human-readable Korean labels for each provider, used across steps. */

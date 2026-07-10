@@ -18,6 +18,71 @@ describe('createInitialChatState', () => {
     expect(state.decisionCard.status).toBe('hidden');
     expect(state.research.active).toBe(false);
   });
+
+  it('starts with an idle scroll signal', () => {
+    expect(createInitialChatState().scrollSignal).toEqual({ intent: 'none', seq: 0 });
+  });
+});
+
+describe('chatReducer scrollSignal wiring (실사용 피드백 #3/#4)', () => {
+  it('bumps seq and sets intent "bottom" on an ordinary chat turn', () => {
+    const before = createInitialChatState();
+    const after = chatReducer(before, { type: 'SEND_CHAT_START', id: 'u1', text: 'hi', now: 1 });
+    expect(after.scrollSignal.intent).toBe('bottom');
+    expect(after.scrollSignal.seq).toBe(before.scrollSignal.seq + 1);
+  });
+
+  it('sets intent "research-top" when a research result arrives', () => {
+    const result = { report: '요약', papers: [], citedPapers: [], relatedPapers: [], failedSources: [] };
+    let state = chatReducer(
+      { ...createInitialChatState(), mode: 'research' },
+      { type: 'RESEARCH_START', id: 'r1', question: 'q', now: 1 },
+    );
+    const seqBefore = state.scrollSignal.seq;
+    state = chatReducer(state, { type: 'RESEARCH_SUCCESS', result });
+    expect(state.scrollSignal.intent).toBe('research-top');
+    expect(state.scrollSignal.seq).toBe(seqBefore + 1);
+  });
+
+  it('never regresses seq, and re-bumps it even across two consecutive "bottom" actions — the exact handoff-then-send sequence behind 실사용 피드백 #4', () => {
+    // Regression test for the reported bug: after a handoff conversation
+    // (LOAD_HISTORY_SESSION) is loaded, sending a follow-up chat turn must
+    // still trigger a fresh auto-scroll, even though both actions resolve to
+    // the same "bottom" intent. `scrollSignal.seq` (a fresh reference every
+    // time) is what makes `ChatScreen.tsx`'s effect re-fire regardless.
+    let state = createInitialChatState();
+    state = chatReducer(state, {
+      type: 'LOAD_HISTORY_SESSION',
+      messages: [{ id: 'h-0', role: 'summary', text: '이전 리서치 요약', createdAt: 1 }],
+    });
+    const afterHandoff = state.scrollSignal;
+    expect(afterHandoff.intent).toBe('bottom');
+
+    state = chatReducer(state, { type: 'SEND_CHAT_START', id: 'u1', text: '후속 질문입니다', now: 2 });
+    expect(state.scrollSignal.intent).toBe('bottom');
+    expect(state.scrollSignal.seq).toBeGreaterThan(afterHandoff.seq);
+    expect(state.scrollSignal).not.toBe(afterHandoff);
+
+    state = chatReducer(state, { type: 'SEND_CHAT_SUCCESS', id: 'a1', now: 3, reply: '답변' });
+    expect(state.scrollSignal.intent).toBe('bottom');
+    expect(state.scrollSignal.seq).toBeGreaterThan(afterHandoff.seq + 1);
+  });
+
+  it('does not bump seq on a no-op action (e.g. a blocked send)', () => {
+    const state: ChatState = { ...createInitialChatState(), inputText: 'x', sending: true };
+    const next = chatReducer(state, { type: 'SEND_CHAT_START', id: '1', text: 'x', now: 1 });
+    expect(next.scrollSignal).toBe(state.scrollSignal);
+  });
+
+  it('does not bump seq on actions with no scroll intent (e.g. RESEARCH_PROGRESS)', () => {
+    let state = chatReducer(
+      { ...createInitialChatState(), mode: 'research' },
+      { type: 'RESEARCH_START', id: 'r1', question: 'q', now: 1 },
+    );
+    const seqBefore = state.scrollSignal.seq;
+    state = chatReducer(state, { type: 'RESEARCH_PROGRESS', stage: 'searching' });
+    expect(state.scrollSignal.seq).toBe(seqBefore);
+  });
 });
 
 describe('mode toggle', () => {

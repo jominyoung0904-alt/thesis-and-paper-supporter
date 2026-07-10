@@ -17,27 +17,32 @@
  * `.chat-scroll-area` (messages + research panel + decision card) scrolls;
  * `MessageInput` (mode toggle + textarea) is a non-scrolling flex sibling
  * that always stays visible at the bottom, KakaoTalk-style, instead of being
- * pushed off-screen by a long research report. A bottom anchor element is
- * scrolled into view whenever a new message arrives or a research run
- * finishes, so the latest content is always in view without the user
- * having to scroll manually. The history panel (when open) sits between the
- * header and `.chat-scroll-area`, outside the scrolling messages area, so it
- * never gets pushed away by a long conversation.
+ * pushed off-screen by a long research report. The history panel (when
+ * open) sits between the header and `.chat-scroll-area`, outside the
+ * scrolling messages area, so it never gets pushed away by a long
+ * conversation.
+ *
+ * Auto-scroll (실사용 피드백 #3/#4): driven entirely by `state.scrollSignal`
+ * (see `chatUiLogic.ts`'s doc comment for the full rationale) rather than
+ * comparing derived values across renders — every message-adding action
+ * scrolls `scrollAnchorRef` (the bottom) into view, except a finished
+ * research result, which scrolls `researchPanelRef` (the top of that block)
+ * into view instead, since a long report should be read from its start.
  */
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { canSendMessage, canSwitchMode, chatReducer, createInitialChatState } from './chatUiLogic';
-import { mapIpcMessagesToChatMessages } from './chatHistoryLogic';
 import { startHandoffFromLatestResult } from './researchHandoffLogic';
 import { SLOW_RESPONSE_DELAY_MS, SLOW_RESPONSE_MESSAGE } from './slowResponseLogic';
+import { useChatSessionManagement } from './useChatSessionManagement';
+import { useNaverDocBannerState } from './useNaverDocBannerState';
 import type { ChatScreenProps } from './chatTypes';
 import { createChatHistoryCallbacks, createResearchHistoryScreenCallbacks } from '../appCallbacks';
-import type { ChatHistoryLoadResult } from '../../shared/ipc-channels';
-import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
 import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
+import { NaverDocBanner } from './NaverDocBanner';
 import { ResearchProgress } from './ResearchProgress';
 import { DecisionConfirmCard } from './DecisionConfirmCard';
 import './chat.css';
@@ -48,21 +53,20 @@ function makeId(): string {
     : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: ChatScreenProps): JSX.Element {
+export function ChatScreen({
+  callbacks,
+  pendingHandoff,
+  onHandoffConsumed,
+  onNavigateToSettings,
+}: ChatScreenProps): JSX.Element {
   const [state, dispatch] = useReducer(chatReducer, createInitialChatState());
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const researchPanelRef = useRef<HTMLDivElement>(null);
   const historyCallbacks = useMemo(() => createChatHistoryCallbacks(), []);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  // The saved session (if any) currently loaded into `state.messages` — null
-  // for a brand-new, never-loaded conversation. Only ever set by a
-  // successful `chat-history:load`, and cleared by "새 대화" or by deleting
-  // this very session from the panel.
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [historyActionError, setHistoryActionError] = useState<string | null>(null);
-  // Short banner shown right after a "이 결과로 회의하기" handoff completes
-  // (FR-RSH-003, T51) — cleared on the next send/새 대화/session load so it
-  // never lingers past the moment it describes.
-  const [handoffPreview, setHandoffPreview] = useState<string | null>(null);
+  const naverBanner = useNaverDocBannerState(state.mode, callbacks.getAcademicKeyStatus);
+  // Chat-history sidebar + cross-tab handoff (T54, T51/T62) — see
+  // `useChatSessionManagement.ts`.
+  const session = useChatSessionManagement(dispatch, historyCallbacks, pendingHandoff, onHandoffConsumed);
   const isBusy = state.sending || state.research.active;
   // Rate-limit visibility (defensive follow-up to the field debugger's
   // investigation into an intermittent chat/research stall — root cause
@@ -80,31 +84,32 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
     return () => clearTimeout(timer);
   }, [isBusy]);
 
-  // Auto-scroll to the latest content on new messages and on research
-  // start/finish (active flips, or a result/error lands) — not on every
-  // keystroke or progress-stage tick, so it doesn't fight manual scrolling.
+  // Auto-scroll, driven by `state.scrollSignal` (see `chatUiLogic.ts`'s doc
+  // comment). `scrollSignal` is a fresh object every time the reducer bumps
+  // its `seq`, so this always re-fires exactly once per intended scroll —
+  // it does not depend on comparing derived values (message count, research
+  // booleans, ...) across renders, which is what let a follow-up chat turn
+  // in a handed-off conversation silently fail to re-scroll (실사용 피드백
+  // #4). `research-top` scrolls the result panel's own top into view
+  // instead of the bottom, since a finished report can be long (실사용
+  // 피드백 #3).
   useEffect(() => {
+    if (state.scrollSignal.intent === 'none') {
+      return;
+    }
+    if (state.scrollSignal.intent === 'research-top') {
+      researchPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [state.messages.length, state.research.active, state.research.result, state.research.errorMessage]);
-
-  // Cross-tab handoff (SPEC-TSA-002, T62): `pendingHandoff` is set once by
-  // `App.tsx` right after the 🔍 리서치 tab's "이 결과로 회의하기" button
-  // switches `mainTab` to 'chat'. Reuses the exact same load path as the
-  // in-screen handoff button (`handleHandoffComplete`), then reports
-  // consumption so the parent clears its own state and this never re-fires.
-  useEffect(() => {
-    if (!pendingHandoff) return;
-    handleHandoffComplete(pendingHandoff.messages, pendingHandoff.preview);
-    onHandoffConsumed?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingHandoff]);
+  }, [state.scrollSignal]);
 
   async function handleSend(): Promise<void> {
     const text = state.inputText.trim();
     if (!canSendMessage(state) || text.length === 0) {
       return;
     }
-    setHandoffPreview(null);
+    session.clearHandoffPreview();
 
     if (state.mode === 'research') {
       dispatch({ type: 'RESEARCH_START', id: makeId(), question: text, now: Date.now() });
@@ -155,32 +160,6 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
     }
   }
 
-  // Loaded from the history panel — the main process has already restored
-  // the ConversationManager, so the next `handleSend` continues right on.
-  function handleSessionLoaded(result: Extract<ChatHistoryLoadResult, { ok: true }>): void {
-    dispatch({ type: 'LOAD_HISTORY_SESSION', messages: mapIpcMessagesToChatMessages(result.id, result.messages) });
-    setActiveSessionId(result.id);
-    setHistoryOpen(false);
-    setHistoryActionError(null);
-    setHandoffPreview(null);
-  }
-
-  // "＋ 새 대화" header button (FR-CHM-004). Clears the backend's active
-  // session tracker first so the next autosaved turn starts a fresh session
-  // instead of appending to the one just left.
-  async function handleNewChat(): Promise<void> {
-    setHistoryActionError(null);
-    setHandoffPreview(null);
-    try {
-      await historyCallbacks.newChatHistory();
-      dispatch({ type: 'NEW_CHAT_SESSION' });
-      setActiveSessionId(null);
-      setHistoryOpen(false);
-    } catch {
-      setHistoryActionError('새 대화를 시작하지 못했어요. 다시 시도해 주세요.');
-    }
-  }
-
   // "이 결과로 회의하기" from a freshly finished research result (FR-RSH-003,
   // T51): the result itself has no history id, so this resolves it from the
   // most recently saved research-history entry — see `researchHandoffLogic.ts`.
@@ -194,68 +173,55 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
     );
   }
 
-  // The main process already restored the ConversationManager and cleared
-  // the active-session tracker (see `researchHandoffHandlers.ts`) — the
-  // renderer only needs to load the injected turns and reset local session
-  // state, same as `handleNewChat`.
-  function handleHandoffComplete(messages: IpcChatMessage[], preview: string): void {
-    dispatch({ type: 'LOAD_HISTORY_SESSION', messages: mapIpcMessagesToChatMessages('handoff', messages) });
-    setActiveSessionId(null);
-    setHistoryOpen(false);
-    setHistoryActionError(null);
-    setHandoffPreview(preview);
-  }
-
-  // The currently-open session was deleted from the panel — the backend
-  // already cleared its own active-session tracker, so only local UI state
-  // needs resetting (no further IPC call needed).
-  function handleActiveSessionRemoved(): void {
-    dispatch({ type: 'NEW_CHAT_SESSION' });
-    setActiveSessionId(null);
-  }
-
   return (
     <div className="chat-screen">
       <div className="chat-header">
         <button
           type="button"
           className="chat-history-toggle-btn"
-          aria-expanded={historyOpen}
+          aria-expanded={session.historyOpen}
           aria-label="대화 목록 열기/닫기"
-          onClick={() => setHistoryOpen((v) => !v)}
+          onClick={session.toggleHistoryOpen}
         >
           📑 대화 목록
         </button>
-        <button type="button" className="chat-new-btn" aria-label="새 대화 시작" onClick={() => void handleNewChat()}>
+        <button
+          type="button"
+          className="chat-new-btn"
+          aria-label="새 대화 시작"
+          onClick={() => void session.handleNewChat()}
+        >
           ＋ 새 대화
         </button>
       </div>
-      {historyActionError && (
+      {session.historyActionError && (
         <p className="chat-history-action-error" role="alert">
-          {historyActionError}
+          {session.historyActionError}
         </p>
       )}
-      {handoffPreview && (
+      {session.handoffPreview && (
         <p className="chat-handoff-preview" role="status">
-          {handoffPreview}
+          {session.handoffPreview}
         </p>
       )}
       <ChatHistoryPanel
-        open={historyOpen}
+        open={session.historyOpen}
         callbacks={historyCallbacks}
-        activeSessionId={activeSessionId}
-        onClose={() => setHistoryOpen(false)}
-        onSessionLoaded={handleSessionLoaded}
-        onActiveSessionRemoved={handleActiveSessionRemoved}
+        activeSessionId={session.activeSessionId}
+        onClose={session.closeHistory}
+        onSessionLoaded={session.handleSessionLoaded}
+        onActiveSessionRemoved={session.handleActiveSessionRemoved}
       />
       <div className="chat-scroll-area">
         <MessageList messages={state.messages} />
-        <ResearchProgress
-          research={state.research}
-          onOpenLink={callbacks.openLink}
-          onStartHandoff={callbacks.startResearchHandoff ? handleStartHandoffFromLatestResult : undefined}
-          onHandoffComplete={handleHandoffComplete}
-        />
+        <div ref={researchPanelRef}>
+          <ResearchProgress
+            research={state.research}
+            onOpenLink={callbacks.openLink}
+            onStartHandoff={callbacks.startResearchHandoff ? handleStartHandoffFromLatestResult : undefined}
+            onHandoffComplete={session.handleHandoffComplete}
+          />
+        </div>
         <DecisionConfirmCard
           card={state.decisionCard}
           onConfirm={handleConfirmDecision}
@@ -263,6 +229,9 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
         />
         <div className="chat-scroll-anchor" ref={scrollAnchorRef} />
       </div>
+      {naverBanner.visible && (
+        <NaverDocBanner onNavigateToSettings={onNavigateToSettings} onDismiss={naverBanner.dismiss} />
+      )}
       {showSlowResponseBanner && (
         <p className="chat-slow-response-banner" role="status">
           {SLOW_RESPONSE_MESSAGE}

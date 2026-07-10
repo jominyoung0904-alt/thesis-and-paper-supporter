@@ -20,9 +20,12 @@
  * `IpcPaperMetadata` from the shared IPC layer as-is (not core), since the
  * library-save button in `ResearchProgress.tsx` needs the paper's full raw
  * metadata (source + externalId, the duplicate-detection key) to call
- * `saveToLibrary`.
+ * `saveToLibrary`. `ChatScreenCallbacks.getAcademicKeyStatus` (실사용 피드백
+ * #2) is a second, equally deliberate exception, reusing `AcademicKeyStatus`
+ * as-is so the naverdoc-connect banner never drifts from what
+ * `SettingsScreen` itself considers "registered".
  */
-import type { IpcPaperMetadata } from '../../shared/ipc-channels';
+import type { AcademicKeyStatus, IpcPaperMetadata } from '../../shared/ipc-channels';
 import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
 import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 
@@ -108,6 +111,14 @@ export interface ChatScreenCallbacks {
    * handoff button stays hidden while this is absent.
    */
   startResearchHandoff?(researchId: string): Promise<ResearchHandoffStartResult>;
+  /**
+   * Reports which academic-search providers currently have a key registered
+   * — used only to decide whether the naverdoc-connect info banner should
+   * show in research mode (실사용 피드백 #2). Optional — undefined until
+   * `appCallbacks.ts` wires the real `thesisApi.getAcademicKeyStatus` bridge
+   * method; the banner never renders while this is absent.
+   */
+  getAcademicKeyStatus?(): Promise<AcademicKeyStatus>;
 }
 
 export interface ChatScreenProps {
@@ -123,4 +134,11 @@ export interface ChatScreenProps {
   pendingHandoff?: { messages: IpcChatMessage[]; preview: string } | null;
   /** Notifies the host shell that `pendingHandoff` was consumed (one-shot). */
   onHandoffConsumed?: () => void;
+  /**
+   * Switches the host shell's top-level tab to "⚙️ 설정" (실사용 피드백 #2) —
+   * wired by `App.tsx` to `setMainTab('settings')`. Optional so this screen
+   * still renders standalone (e.g. in isolation/tests) without it; the
+   * naverdoc banner's [설정으로 가기] button just does nothing if absent.
+   */
+  onNavigateToSettings?: () => void;
 }

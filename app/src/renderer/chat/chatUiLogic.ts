@@ -7,9 +7,14 @@
  * this reducer into `useReducer` and performs the actual async calls
  * (`callbacks.sendChat` / `runResearch` / `saveDecision`), dispatching the
  * results back in as plain actions.
+ *
+ * `scrollSignal` (실사용 피드백 #3/#4) drives `ChatScreen.tsx`'s auto-scroll
+ * effect — see `chatScrollLogic.ts` for the full rationale and the
+ * `resolveScrollIntent` helper this reducer calls on every action.
  */
 
 import type { ChatMessage, ChatMode, ResearchView, SuggestedDecision } from './chatTypes';
+import { resolveScrollIntent, type ScrollSignal } from './chatScrollLogic';
 
 export interface ResearchRunState {
   active: boolean;
@@ -34,6 +39,8 @@ export interface ChatState {
   sending: boolean;
   decisionCard: DecisionCardState;
   research: ResearchRunState;
+  /** Drives `ChatScreen.tsx`'s auto-scroll effect. See this module's doc comment. */
+  scrollSignal: ScrollSignal;
 }
 
 export function createInitialChatState(): ChatState {
@@ -44,6 +51,7 @@ export function createInitialChatState(): ChatState {
     sending: false,
     decisionCard: { status: 'hidden', decision: null, errorMessage: null },
     research: { active: false, stage: null, detail: null, result: null, errorMessage: null },
+    scrollSignal: { intent: 'none', seq: 0 },
   };
 }
 
@@ -88,7 +96,26 @@ function assistantMessage(id: string, text: string, now: number): ChatMessage {
   return { id, role: 'assistant', text, createdAt: now };
 }
 
+/**
+ * Public reducer: runs the actual state transition (`chatReducerCore`) and
+ * then stamps the resulting state with the next `scrollSignal`, if any. A
+ * no-op transition (e.g. a blocked `SEND_CHAT_START` while already busy,
+ * which returns the exact same `state` reference) never bumps `seq` — only
+ * a real state change can trigger a scroll.
+ */
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  const nextState = chatReducerCore(state, action);
+  if (nextState === state) {
+    return nextState;
+  }
+  const intent = resolveScrollIntent(action.type);
+  if (intent === 'none') {
+    return nextState;
+  }
+  return { ...nextState, scrollSignal: { intent, seq: state.scrollSignal.seq + 1 } };
+}
+
+function chatReducerCore(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
     case 'SET_MODE': {
       if (!canSwitchMode(state)) {
