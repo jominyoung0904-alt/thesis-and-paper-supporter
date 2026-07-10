@@ -13,6 +13,7 @@
 import type { LlmAdapter, LlmResponse } from '../llm';
 import type { AcademicClient, AcademicSource, PaperMetadata, SearchFailureReason } from '../academic-api/types';
 import type { SerializedMemory } from '../memory/serializer';
+import type { CheckpointData, CheckpointState } from './checkpoint';
 
 /** Relevance verdict assigned by the screening step (FR-RES-003). */
 export type RelevanceLabel = 'high' | 'medium' | 'low';
@@ -35,8 +36,23 @@ export interface GeneratedQueries {
   en: string[];
 }
 
-/** Coarse pipeline stages surfaced to the UI and (later, T16) the checkpoint store. */
+/** Coarse pipeline stages surfaced to the UI and to the checkpoint store (FR-RES-007/008). */
 export type PipelineStage = 'query-gen' | 'searching' | 'screening' | 'report';
+
+/**
+ * Hooks a caller wires in to make a run resumable (FR-RES-007/008, T61).
+ * Optional and side-effect free by default — omitting it (the existing
+ * behavior everywhere except `researchGateHandlers.ts`) makes `runDeepResearch`
+ * behave exactly as before checkpointing existed.
+ */
+export interface CheckpointHooks {
+  /** Reads the last saved checkpoint, or `null` when none exists / it is unusable. */
+  load: () => CheckpointState | null;
+  /** Persists progress after a costly step (search or screening) completes. */
+  save: (state: CheckpointData) => void;
+  /** Deletes the checkpoint — called on a full success, or a question mismatch. */
+  clear: () => void;
+}
 
 /** A progress signal emitted at each stage boundary. */
 export interface ProgressEvent {
@@ -67,8 +83,10 @@ export interface DeepResearchInput {
   model: string;
   /** Model id for {@link screeningLlm}; falls back to {@link model} when omitted. */
   screeningModel?: string;
-  /** Optional progress callback; the join point for T16 checkpointing. */
+  /** Optional progress callback; also the channel used to announce a resumed run. */
   onProgress?: (event: ProgressEvent) => void;
+  /** Optional resume support (FR-RES-007/008); omitted everywhere the caller has no checkpoint file wired. */
+  checkpoint?: CheckpointHooks;
 }
 
 /** The full result of a deep-research run. */

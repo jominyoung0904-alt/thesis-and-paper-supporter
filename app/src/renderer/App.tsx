@@ -1,23 +1,33 @@
 /**
- * Root shell component (Wave 4.5 central integration / SPEC-TSA-001; review-fix
- * HIGH#1 wired up the writing-check tab; T42/SPEC-TSA-002 wired up the
- * project switcher).
+ * Root shell component (Wave 4.5 central integration / SPEC-TSA-001;
+ * T42/SPEC-TSA-002 wired up the project switcher; T62/SPEC-TSA-002
+ * re-organized the main screen into the current five-tab layout).
  *
  * On mount, asks the main process whether this is a first run (no LLM
  * provider key registered yet). First-run users see the setup wizard;
- * everyone else land on the main screen, which now offers two tabs:
- * "💬 대화" (the original single-chat interface) and "✍️ 서론 점검" (the
- * FR-WRT-001/002 quality-gate screen). Both screens are pure — every side
- * effect flows through `window.thesisApi` via the callback factories in
- * `appCallbacks.ts`.
+ * everyone else lands on the main screen, which now offers five tabs:
+ * "💬 대화" (free chat + deep-research mode toggle, unchanged), "🔍 리서치"
+ * (saved deep-research history — browsing/reuse only; running a new deep
+ * research still happens from the 대화 tab's mode toggle), "📚 보관함"
+ * (saved literature library), "✍️ 글쓰기" (the FR-WRT-001/002/010/011
+ * writing-support suite, T59's `WritingScreen`), and "⚙️ 설정". Every screen
+ * is pure — every side effect flows through `window.thesisApi` via the
+ * callback factories in `appCallbacks.ts`.
  *
  * `activeProjectId`/`projects` are owned here (FR-PRJ) and loaded once the
  * user lands on the main screen (never during the wizard flow). The
- * project-scoped screens (chat/writing-check) are keyed off
- * `activeProjectId` so a switch or a newly-created project force-remounts
- * them, resetting their renderer-local state to match the main process's own
- * conversation reset on `project:switch`/`project:create` (see T41's
- * completion report).
+ * project-scoped screens (every tab but 설정) are keyed off `activeProjectId`
+ * so a switch or a newly-created project force-remounts them, resetting
+ * their renderer-local state to match the main process's own conversation
+ * reset on `project:switch`/`project:create` (see T41's completion report).
+ *
+ * Cross-tab handoff (FR-RSH-003, T51/T62): clicking "이 결과로 회의하기" from
+ * the 🔍 리서치 tab's record detail view starts the handoff, then hands the
+ * injected transcript + preview banner to this shell via
+ * `ResearchHistoryScreen.onHandoffComplete`, which stores it as
+ * `pendingHandoff` and switches `mainTab` to 'chat'. `ChatScreen` consumes
+ * `pendingHandoff` on mount/update and reports back via `onHandoffConsumed`
+ * so the same handoff is never re-injected on a later re-render.
  *
  * `FontSizeControl` is intentionally NOT mounted here — it lives in its own
  * DOM root outside `#root` (see `main.tsx`/`index.html`) so the zoom-based
@@ -29,26 +39,43 @@ import { useEffect, useState } from 'react';
 import { ChatScreen } from './chat';
 import {
   createChatScreenCallbacks,
+  createLibraryScreenCallbacks,
   createProjectScreenCallbacks,
+  createResearchHistoryScreenCallbacks,
   createSettingsScreenCallbacks,
   createWizardCallbacks,
-  createWritingCheckCallbacks,
+  createWritingScreenCallbacks,
 } from './appCallbacks';
+import { LibraryScreen } from './library/LibraryScreen';
 import { ProjectSwitcher } from './project/ProjectSwitcher';
+import { ResearchHistoryScreen } from './research/ResearchHistoryScreen';
 import type { IpcProjectInfo } from '../shared/ipc-channels';
+import type { IpcChatMessage } from '../shared/ipc/chatHistory';
 import { SettingsScreen } from './settings/SettingsScreen';
 import { Wizard } from './settings/wizard';
-import { WritingCheckScreen } from './writing/WritingCheckScreen';
+import { WritingScreen } from './writing/WritingScreen';
 import './appTabs.css';
 
 type BootStatus = 'loading' | 'wizard' | 'chat';
-type MainTab = 'chat' | 'writing' | 'settings';
+type MainTab = 'chat' | 'research' | 'library' | 'writing' | 'settings';
+
+/** A handoff waiting to be consumed by `ChatScreen` after switching to it (T62). */
+type PendingHandoff = { messages: IpcChatMessage[]; preview: string } | null;
+
+const MAIN_TABS: ReadonlyArray<{ id: MainTab; label: string }> = [
+  { id: 'chat', label: '💬 대화' },
+  { id: 'research', label: '🔍 리서치' },
+  { id: 'library', label: '📚 보관함' },
+  { id: 'writing', label: '✍️ 글쓰기' },
+  { id: 'settings', label: '⚙️ 설정' },
+];
 
 export function App(): JSX.Element {
   const [status, setStatus] = useState<BootStatus>('loading');
   const [mainTab, setMainTab] = useState<MainTab>('chat');
   const [projects, setProjects] = useState<IpcProjectInfo[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [pendingHandoff, setPendingHandoff] = useState<PendingHandoff>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,28 +126,6 @@ export function App(): JSX.Element {
     };
   }, [status]);
 
-  return renderBody(status, mainTab, setStatus, setMainTab, {
-    projects,
-    activeProjectId,
-    setProjects,
-    setActiveProjectId,
-  });
-}
-
-interface ProjectState {
-  projects: IpcProjectInfo[];
-  activeProjectId: string | null;
-  setProjects: (projects: IpcProjectInfo[]) => void;
-  setActiveProjectId: (id: string) => void;
-}
-
-function renderBody(
-  status: BootStatus,
-  mainTab: MainTab,
-  setStatus: (status: BootStatus) => void,
-  setMainTab: (tab: MainTab) => void,
-  projectState: ProjectState,
-): JSX.Element {
   if (status === 'loading') {
     return (
       <main className="app-loading">
@@ -133,7 +138,6 @@ function renderBody(
     return <Wizard callbacks={createWizardCallbacks()} onComplete={() => setStatus('chat')} />;
   }
 
-  const { projects, activeProjectId, setProjects, setActiveProjectId } = projectState;
   const screenKey = activeProjectId ?? 'default';
 
   return (
@@ -146,37 +150,42 @@ function renderBody(
         onActiveProjectChange={setActiveProjectId}
       />
       <div className="app-tabs" role="tablist" aria-label="주요 화면 전환">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mainTab === 'chat'}
-          className={`app-tab-btn${mainTab === 'chat' ? ' app-tab-btn-active' : ''}`}
-          onClick={() => setMainTab('chat')}
-        >
-          💬 대화
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mainTab === 'writing'}
-          className={`app-tab-btn${mainTab === 'writing' ? ' app-tab-btn-active' : ''}`}
-          onClick={() => setMainTab('writing')}
-        >
-          ✍️ 서론 점검
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mainTab === 'settings'}
-          className={`app-tab-btn${mainTab === 'settings' ? ' app-tab-btn-active' : ''}`}
-          onClick={() => setMainTab('settings')}
-        >
-          ⚙️ 설정
-        </button>
+        {MAIN_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={mainTab === tab.id}
+            className={`app-tab-btn${mainTab === tab.id ? ' app-tab-btn-active' : ''}`}
+            onClick={() => setMainTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {mainTab === 'chat' && <ChatScreen key={screenKey} callbacks={createChatScreenCallbacks()} />}
-      {mainTab === 'writing' && <WritingCheckScreen key={screenKey} callbacks={createWritingCheckCallbacks()} />}
+      {mainTab === 'chat' && (
+        <ChatScreen
+          key={screenKey}
+          callbacks={createChatScreenCallbacks()}
+          pendingHandoff={pendingHandoff}
+          onHandoffConsumed={() => setPendingHandoff(null)}
+        />
+      )}
+      {mainTab === 'research' && (
+        <ResearchHistoryScreen
+          key={screenKey}
+          callbacks={createResearchHistoryScreenCallbacks()}
+          openLink={(url) => window.thesisApi.openExternal(url)}
+          startResearchHandoff={(researchId) => window.thesisApi.startResearchHandoff(researchId)}
+          onHandoffComplete={(messages, preview) => {
+            setPendingHandoff({ messages, preview });
+            setMainTab('chat');
+          }}
+        />
+      )}
+      {mainTab === 'library' && <LibraryScreen key={screenKey} callbacks={createLibraryScreenCallbacks()} />}
+      {mainTab === 'writing' && <WritingScreen key={screenKey} callbacks={createWritingScreenCallbacks()} />}
       {mainTab === 'settings' && <SettingsScreen callbacks={createSettingsScreenCallbacks()} />}
     </div>
   );

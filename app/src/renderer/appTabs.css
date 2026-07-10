@@ -1,13 +1,19 @@
 /*
- * Main-screen tab switcher styling ("💬 대화" / "✍️ 서론 점검"). Same
+ * Main-screen tab switcher styling ("💬 대화" / "🔍 리서치" / "📚 보관함" /
+ * "✍️ 글쓰기" / "⚙️ 설정" — T62/SPEC-TSA-002 five-tab layout). Same
  * large-text, high-contrast approach as chat.css/qualityGateView.css.
  *
  * Task T35 fix#1: html/body/#root/.app-main form an explicit 100%-height
  * chain so `.chat-screen` can size itself with `flex: 1` to exactly fill
  * the remaining viewport space below the tab bar (see chat.css). This is
- * harmless for the other tabs (writing/settings): they don't opt into
- * `flex: 1`, so their natural (auto) height and the page's normal scroll
- * behavior are unchanged.
+ * harmless for the other tabs (research/library/writing/settings): they
+ * don't opt into `flex: 1`, so their natural (auto) height and the page's
+ * normal scroll behavior are unchanged.
+ *
+ * Task T62: five tabs no longer fit on one line in a narrow window, so
+ * `.app-tabs` wraps onto a second row instead of overflowing, and a narrow
+ * breakpoint shrinks font/padding so more tabs stay on the first row before
+ * wrapping kicks in.
  */
 
 html,
@@ -28,6 +34,7 @@ body {
 
 .app-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 16px 24px 0;
   max-width: 820px;
@@ -50,4 +57,18 @@ body {
   border-color: #2563eb;
   background: #eff6ff;
   font-weight: bold;
+}
+
+/* Narrow window (T62, five tabs): shrink font/padding so more tabs fit per
+   row before `.app-tabs`'s `flex-wrap` pushes the rest to a second line. */
+@media (max-width: 680px) {
+  .app-tabs {
+    gap: 4px;
+    padding: 12px 12px 0;
+  }
+
+  .app-tab-btn {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
 }

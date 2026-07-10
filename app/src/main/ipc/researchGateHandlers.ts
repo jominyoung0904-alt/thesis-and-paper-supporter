@@ -15,6 +15,7 @@ import type { KeyStore } from '../config/keyStore';
 import { translateLlmError } from '../../core/llm/errorTranslator';
 import type { MemoryStore } from '../../core/memory/store';
 import { serializeMemoryForPrompt } from '../../core/memory/serializer';
+import { clearCheckpoint, loadCheckpoint, saveCheckpoint } from '../../core/research-pipeline/checkpoint';
 import { runDeepResearch } from '../../core/research-pipeline/pipeline';
 import { runQualityGate } from '../../core/writing/qualityGate';
 import { introductionGateDefinition } from '../../core/writing/gateDefinitions';
@@ -57,6 +58,13 @@ export interface ResearchGateHandlerDeps {
    * Re-invoked on every call — same pattern as `getMemoryStore`.
    */
   getGateDir: () => string;
+  /**
+   * Returns the ACTIVE project's deep-research checkpoint file path
+   * (FR-RES-007/008). Re-invoked on every call — same pattern as
+   * `getMemoryStore`, so a project switch mid-run is never possible to
+   * straddle across two projects' checkpoint files.
+   */
+  getCheckpointFile: () => string;
 }
 
 const MAX_QUESTION_LENGTH = 2_000;
@@ -71,7 +79,7 @@ const VALID_GATE_SECTIONS = Object.keys(GATE_DEFINITIONS);
 
 /** Registers `research:run` and `quality-gate:run`. */
 export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): void {
-  const { llmService, getMemoryStore, keyStore, getSettings, getResearchDir, getGateDir } = deps;
+  const { llmService, getMemoryStore, keyStore, getSettings, getResearchDir, getGateDir, getCheckpointFile } = deps;
 
   ipcMain.handle(
     IpcChannels.RESEARCH_RUN,
@@ -94,6 +102,14 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
           model: llmService.getModel(),
           onProgress: (progressEvent: ResearchProgressPayload) => {
             event.sender.send(IpcChannels.RESEARCH_PROGRESS, progressEvent);
+          },
+          // FR-RES-007/008: file-bound resume hooks — re-resolves the active
+          // project's checkpoint file on every call via getCheckpointFile(),
+          // same re-invocation pattern as getMemoryStore/getResearchDir above.
+          checkpoint: {
+            load: () => loadCheckpoint(getCheckpointFile()),
+            save: (state) => saveCheckpoint(getCheckpointFile(), state),
+            clear: () => clearCheckpoint(getCheckpointFile()),
           },
         });
         // Auto-save (FR-RSH-001): saveResearchRecord() owns its own

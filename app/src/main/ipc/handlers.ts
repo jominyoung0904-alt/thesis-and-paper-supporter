@@ -120,10 +120,19 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   const getChatsDir = () => projectContext.getServices().projectPaths.chatsDir;
   const getGateDir = () => projectContext.getServices().projectPaths.gateDir;
   const getMockReviewDir = () => projectContext.getServices().projectPaths.mockReviewDir;
+  const getCheckpointFile = () => projectContext.getServices().projectPaths.checkpointFile;
 
   registerSettingsHandlers({ keyStore, settingsFile, getSettings, setSettings, llmService, conversation });
   registerChatHandlers({ llmService, getMemoryStore, conversation, getChatsDir, activeChatSession });
-  registerResearchGateHandlers({ llmService, getMemoryStore, keyStore, getSettings, getResearchDir, getGateDir });
+  registerResearchGateHandlers({
+    llmService,
+    getMemoryStore,
+    keyStore,
+    getSettings,
+    getResearchDir,
+    getGateDir,
+    getCheckpointFile,
+  });
   registerProjectHandlers({ indexStore, projectContext });
   registerLibraryHandlers({ getLibraryFile });
   registerResearchHistoryHandlers({ getResearchDir });

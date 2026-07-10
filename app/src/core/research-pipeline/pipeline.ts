@@ -5,9 +5,19 @@
  * parallel academic lookup + dedup → relevance screening → deterministic
  * report assembly. Failures of individual sources are collected as data and
  * reported transparently rather than aborting the run.
+ *
+ * Resume support (FR-RES-007/008, T61): when `input.checkpoint` is wired,
+ * progress after the two costly steps (search, screening) is saved via
+ * `checkpoint.ts`. The next run for the *same question* skips straight past
+ * whatever already completed instead of re-querying academic APIs or
+ * re-screening. A different question discards the stale checkpoint — see
+ * `resolveResume`. Report assembly (one LLM call) is never checkpointed
+ * mid-flight: it is cheap to retry, and its failure is the documented trigger
+ * for resuming on the next run.
  */
 
 import type { AcademicClient, PaperMetadata, SearchResult } from '../academic-api/types';
+import type { CheckpointData } from './checkpoint';
 import { generateQueries } from './queryGen';
 import { assembleReport } from './report';
 import { screenPapers } from './screening';
@@ -24,10 +34,22 @@ import { createUsage } from './types';
 /** Per-query result cap requested from each academic client. */
 const SEARCH_LIMIT = 10;
 
+/** Progress detail prefixed onto the stage where a resumed run picks back up. */
+const RESUME_NOTICE = '이전에 진행하던 리서치를 이어서 해요.';
+
 /** Result of fanning out across every client for every relevant search term. */
 interface SearchOutcome {
   papers: PaperMetadata[];
   failedSources: FailedSource[];
+}
+
+/** What a usable checkpoint (matching this run's question) supplies to skip ahead. */
+interface ResumedProgress {
+  queries: GeneratedQueries;
+  papers: PaperMetadata[];
+  failedSources: FailedSource[];
+  /** Present only when the checkpoint completed screening too (skip straight to report). */
+  screened?: ScreenedPaper[];
 }
 
 /**
@@ -39,28 +61,51 @@ interface SearchOutcome {
 // @AX:TODO: [AUTO] KCI/ScienceON real-server response schema is unconfirmed — see core/academic-api/kciClient.ts, scienceOnClient.ts. Related: FR-RES-002
 export async function runDeepResearch(input: DeepResearchInput): Promise<DeepResearchResult> {
   const usage = createUsage();
-  const emit = (stage: PipelineStage, detail?: string): void => input.onProgress?.({ stage, detail });
+  const resumed = resolveResume(input);
+  // The one stage that will actually run first gets the resume notice prefixed
+  // onto its own detail text; every other emit() call is unaffected.
+  const resumeStage: PipelineStage | null = resumed === null ? null : resumed.screened !== undefined ? 'report' : 'screening';
+  const emit = (stage: PipelineStage, detail?: string): void => {
+    input.onProgress?.({ stage, detail: stage === resumeStage ? joinDetail(RESUME_NOTICE, detail) : detail });
+  };
 
-  // (a) Query generation — one LLM call, with parse-retry + raw-question fallback.
-  emit('query-gen');
-  const { queries } = await generateQueries(input.question, input.memory, input.llm, input.model, usage);
+  let queries: GeneratedQueries;
+  let papers: PaperMetadata[];
+  let failedSources: FailedSource[];
 
-  // (b) Parallel lookup across all clients, then (c) title-based dedup.
-  emit('searching', `국문 ${queries.ko.length}개 · 영문 ${queries.en.length}개 검색어`);
-  const { papers, failedSources } = await runSearches(input.clients, queries);
-  const deduped = dedupePapers(papers);
+  if (resumed !== null) {
+    ({ queries, papers, failedSources } = resumed);
+  } else {
+    // (a) Query generation — one LLM call, with parse-retry + raw-question fallback.
+    emit('query-gen');
+    ({ queries } = await generateQueries(input.question, input.memory, input.llm, input.model, usage));
 
-  // (d) Relevance screening (optionally on a lighter model).
-  emit('screening', `${deduped.length}편 스크리닝`);
-  const screeningLlm = input.screeningLlm ?? input.llm;
-  const screeningModel = input.screeningModel ?? input.model;
-  const screened: ScreenedPaper[] =
-    deduped.length > 0
-      ? await screenPapers(input.question, deduped, input.memory, screeningLlm, screeningModel, usage)
-      : [];
+    // (b) Parallel lookup across all clients, then (c) title-based dedup.
+    emit('searching', `국문 ${queries.ko.length}개 · 영문 ${queries.en.length}개 검색어`);
+    const searchOutcome = await runSearches(input.clients, queries);
+    papers = dedupePapers(searchOutcome.papers);
+    failedSources = searchOutcome.failedSources;
+    persistCheckpoint(input, { queries, papers, failedSources, completedStage: 'searching' });
+  }
+
+  let screened: ScreenedPaper[];
+  if (resumed?.screened !== undefined) {
+    screened = resumed.screened;
+  } else {
+    // (d) Relevance screening (optionally on a lighter model).
+    emit('screening', `${papers.length}편 스크리닝`);
+    const screeningLlm = input.screeningLlm ?? input.llm;
+    const screeningModel = input.screeningModel ?? input.model;
+    screened =
+      papers.length > 0
+        ? await screenPapers(input.question, papers, input.memory, screeningLlm, screeningModel, usage)
+        : [];
+    persistCheckpoint(input, { queries, papers, failedSources, screened, completedStage: 'screening' });
+  }
 
   // @AX:NOTE: [AUTO] report assembly is deterministic — references are built from PaperMetadata only, never LLM-authored. Related: FR-RES-005
-  // (e) Deterministic report assembly.
+  // (e) Deterministic report assembly. If this throws, the 'screening'
+  // checkpoint above survives on disk — the next run resumes straight here.
   emit('report');
   const participatingSources = input.clients.map((client) => client.source);
   const assembled = await assembleReport(
@@ -75,6 +120,8 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     queries.ko[0] ?? input.question,
   );
 
+  input.checkpoint?.clear();
+
   return {
     report: assembled.report,
     papers: screened,
@@ -84,6 +131,41 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     failedSources,
     usage,
   };
+}
+
+/**
+ * Reads `input.checkpoint` (if wired) and decides whether it can be reused.
+ * A checkpoint only resumes work when its `question` matches this run's
+ * verbatim — a different question means the user asked something new, so the
+ * stale checkpoint is discarded (never silently reused for the wrong topic).
+ */
+function resolveResume(input: DeepResearchInput): ResumedProgress | null {
+  const checkpoint = input.checkpoint;
+  if (!checkpoint) return null;
+
+  const state = checkpoint.load();
+  if (!state) return null;
+
+  if (state.question !== input.question) {
+    checkpoint.clear();
+    return null;
+  }
+
+  return {
+    queries: state.queries,
+    papers: state.papers,
+    failedSources: state.failedSources,
+    screened: state.completedStage === 'screening' ? (state.screened ?? []) : undefined,
+  };
+}
+
+/** No-ops when `input.checkpoint` is not wired — same convention as `emit`/`onProgress`. */
+function persistCheckpoint(input: DeepResearchInput, data: Omit<CheckpointData, 'question'>): void {
+  input.checkpoint?.save({ question: input.question, ...data });
+}
+
+function joinDetail(notice: string, detail?: string): string {
+  return detail ? `${notice} ${detail}` : notice;
 }
 
 /**

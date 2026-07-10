@@ -1,100 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AcademicClient, AcademicSource, PaperMetadata, SearchFailureReason } from '../../src/core/academic-api/types';
-import type { LlmAdapter, LlmRequest, LlmUsage } from '../../src/core/llm';
-import type { SerializedMemory } from '../../src/core/memory/serializer';
-import { dedupePapers, runDeepResearch } from '../../src/core/research-pipeline/pipeline';
+import { dedupePapers } from '../../src/core/research-pipeline/pipeline';
 import { ACCESS_GUIDANCE } from '../../src/core/research-pipeline/report';
-import type { DeepResearchInput, RelevanceLabel } from '../../src/core/research-pipeline/types';
-
-/** Runs the pipeline with sensible defaults; callers override only what matters. */
-function run(overrides: Pick<DeepResearchInput, 'llm' | 'clients'> & Partial<DeepResearchInput>) {
-  return runDeepResearch({ question: 'q', memory: MEMORY, model: 'm', ...overrides });
-}
-
-const MEMORY: SerializedMemory = {
-  text: '## 프로젝트 개요\n제목: 테스트 프로젝트',
-  isEmpty: false,
-  approxTokens: 12,
-};
-
-const FIXED_USAGE: LlmUsage = { inputTokens: 10, outputTokens: 5 };
-
-function paper(overrides: Partial<PaperMetadata> & { title: string }): PaperMetadata {
-  return {
-    source: 'kci',
-    externalId: `id-${overrides.title}`,
-    authors: ['홍길동'],
-    year: 2024,
-    abstract: '테스트 초록입니다.',
-    venue: null,
-    url: 'https://example.com/paper',
-    citationCount: null,
-    ...overrides,
-  };
-}
-
-interface LlmScript {
-  queryGen?: (question: string, callIndex: number) => string;
-  screening?: (content: string) => string;
-  report?: (content: string) => string;
-}
-
-interface MockLlm {
-  adapter: LlmAdapter;
-  calls: Array<{ system: string; content: string; stage: string }>;
-}
-
-function stageOf(system: string): string {
-  if (system.includes('검색어로 변환')) return 'query-gen';
-  if (system.includes('관련도는 high')) return 'screening';
-  if (system.includes('종합 리포트')) return 'report';
-  return 'unknown';
-}
-
-function makeLlm(script: LlmScript = {}): MockLlm {
-  const calls: MockLlm['calls'] = [];
-  let queryCalls = 0;
-  const adapter: LlmAdapter = {
-    provider: 'gemini',
-    async chat(req: LlmRequest) {
-      const system = req.system ?? '';
-      const content = req.messages[req.messages.length - 1]?.content ?? '';
-      const stage = stageOf(system);
-      calls.push({ system, content, stage });
-      let text = '';
-      if (stage === 'query-gen') text = script.queryGen ? script.queryGen(content, queryCalls++) : defaultQueryJson();
-      else if (stage === 'screening') text = script.screening ? script.screening(content) : screenAll('high')(content);
-      else if (stage === 'report') text = script.report ? script.report(content) : '선행연구 종합 결과입니다 [1].';
-      return { text, usage: FIXED_USAGE, model: req.model };
-    },
-  };
-  return { adapter, calls };
-}
-
-function defaultQueryJson(): string {
-  return JSON.stringify({ ko: ['국문검색어1', '국문검색어2'], en: ['english one', 'english two'] });
-}
-
-/** Screening handler that labels every numbered item with `label`. */
-function screenAll(label: RelevanceLabel): (content: string) => string {
-  return (content) => {
-    const count = (content.match(/^\d+\. /gm) ?? []).length;
-    return JSON.stringify(Array.from({ length: count }, (_, i) => ({ index: i + 1, relevance: label })));
-  };
-}
-
-function okClient(source: AcademicSource, papers: PaperMetadata[]): AcademicClient {
-  return { source, async search() { return { ok: true, papers }; } };
-}
-
-function failClient(source: AcademicSource, reason: SearchFailureReason): AcademicClient {
-  return { source, async search() { return { ok: false, reason }; } };
-}
-
-function recordingClient(source: AcademicSource, papers: PaperMetadata[], log: string[]): AcademicClient {
-  return { source, async search(query: string) { log.push(query); return { ok: true, papers }; } };
-}
+import {
+  failClient,
+  makeLlm,
+  okClient,
+  paper,
+  recordingClient,
+  run,
+} from './researchPipelineTestHelpers';
 
 describe('runDeepResearch', () => {
   it('completes the happy path: generates queries, screens, and assembles a report', async () => {

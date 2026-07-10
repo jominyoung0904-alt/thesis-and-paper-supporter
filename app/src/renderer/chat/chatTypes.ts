@@ -23,6 +23,7 @@
  * `saveToLibrary`.
  */
 import type { IpcPaperMetadata } from '../../shared/ipc-channels';
+import type { IpcChatMessage } from '../../shared/ipc/chatHistory';
 import type { ResearchHandoffStartResult } from '../../shared/ipc/researchHandoff';
 
 /** Chat mode toggle shown above the input box. */
@@ -111,4 +112,15 @@ export interface ChatScreenCallbacks {
 
 export interface ChatScreenProps {
   callbacks: ChatScreenCallbacks;
+  /**
+   * A handoff injected from a different top-level tab (SPEC-TSA-002, T62) —
+   * e.g. "이 결과로 회의하기" clicked from the 🔍 리서치 tab's record detail
+   * view. `App.tsx` sets this once, right after switching `mainTab` to
+   * `'chat'`; this screen loads it into the transcript the same way its own
+   * in-screen handoff button does, then calls `onHandoffConsumed` so a later
+   * re-render never re-injects the same handoff.
+   */
+  pendingHandoff?: { messages: IpcChatMessage[]; preview: string } | null;
+  /** Notifies the host shell that `pendingHandoff` was consumed (one-shot). */
+  onHandoffConsumed?: () => void;
 }

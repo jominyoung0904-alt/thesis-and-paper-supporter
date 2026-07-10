@@ -47,7 +47,7 @@ function makeId(): string {
     : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
+export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: ChatScreenProps): JSX.Element {
   const [state, dispatch] = useReducer(chatReducer, createInitialChatState());
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
   const historyCallbacks = useMemo(() => createChatHistoryCallbacks(), []);
@@ -69,6 +69,18 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [state.messages.length, state.research.active, state.research.result, state.research.errorMessage]);
+
+  // Cross-tab handoff (SPEC-TSA-002, T62): `pendingHandoff` is set once by
+  // `App.tsx` right after the 🔍 리서치 tab's "이 결과로 회의하기" button
+  // switches `mainTab` to 'chat'. Reuses the exact same load path as the
+  // in-screen handoff button (`handleHandoffComplete`), then reports
+  // consumption so the parent clears its own state and this never re-fires.
+  useEffect(() => {
+    if (!pendingHandoff) return;
+    handleHandoffComplete(pendingHandoff.messages, pendingHandoff.preview);
+    onHandoffConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingHandoff]);
 
   async function handleSend(): Promise<void> {
     const text = state.inputText.trim();
