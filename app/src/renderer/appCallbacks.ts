@@ -16,12 +16,25 @@ import type { WizardCallbacks } from './settings/wizard';
 import type { SettingsScreenCallbacks } from './settings/SettingsScreen';
 import type { ChatScreenCallbacks } from './chat';
 import type { WritingCheckCallbacks } from './writing/WritingCheckScreen';
+import type { GateHistoryScreenCallbacks } from './writing/GateHistoryScreen';
 import type {
+  ChatHistoryListResult,
+  ChatHistoryLoadResult,
+  ChatHistoryNewResult,
+  ChatHistoryRemoveResult,
+  IpcPaperMetadata,
+  LibraryListResult,
+  LibraryRemoveResult,
+  LibrarySaveResult,
+  LibraryUpdateMemoResult,
   ProjectArchiveResult,
   ProjectCreateResult,
   ProjectListResult,
   ProjectRenameResult,
   ProjectSwitchResult,
+  ResearchHistoryGetResult,
+  ResearchHistoryListResult,
+  ResearchHistoryRemoveResult,
 } from '../shared/ipc-channels';
 
 export function createWizardCallbacks(): WizardCallbacks {
@@ -106,5 +119,62 @@ export function createProjectScreenCallbacks(): ProjectScreenCallbacks {
     renameProject: (id, name) => window.thesisApi.renameProject(id, name),
     switchProject: (id) => window.thesisApi.switchProject(id),
     archiveProject: (id) => window.thesisApi.archiveProject(id),
+  };
+}
+
+/** Bridge-only callback contract for the literature library screen (FR-LIB-001/002, T45). */
+export interface LibraryScreenCallbacks {
+  saveToLibrary(paper: IpcPaperMetadata, sourceResearchId?: string): Promise<LibrarySaveResult>;
+  listLibrary(): Promise<LibraryListResult>;
+  updateLibraryMemo(id: string, memo: string): Promise<LibraryUpdateMemoResult>;
+  removeFromLibrary(id: string): Promise<LibraryRemoveResult>;
+}
+
+export function createLibraryScreenCallbacks(): LibraryScreenCallbacks {
+  return {
+    saveToLibrary: (paper, sourceResearchId) => window.thesisApi.saveToLibrary(paper, sourceResearchId),
+    listLibrary: () => window.thesisApi.listLibrary(),
+    updateLibraryMemo: (id, memo) => window.thesisApi.updateLibraryMemo(id, memo),
+    removeFromLibrary: (id) => window.thesisApi.removeFromLibrary(id),
+  };
+}
+
+/** Bridge-only callback contract for a research-history list/detail screen (FR-RSH-002, T49). */
+export interface ResearchHistoryScreenCallbacks {
+  listResearchHistory(): Promise<ResearchHistoryListResult>;
+  getResearchHistoryRecord(id: string): Promise<ResearchHistoryGetResult>;
+  removeResearchHistoryRecord(id: string): Promise<ResearchHistoryRemoveResult>;
+}
+
+export function createResearchHistoryScreenCallbacks(): ResearchHistoryScreenCallbacks {
+  return {
+    listResearchHistory: () => window.thesisApi.listResearchHistory(),
+    getResearchHistoryRecord: (id) => window.thesisApi.getResearchHistoryRecord(id),
+    removeResearchHistoryRecord: (id) => window.thesisApi.removeResearchHistoryRecord(id),
+  };
+}
+
+/** Bridge-only callback contract for the chat session sidebar (FR-CHM-002~004, T54). */
+export interface ChatHistoryCallbacks {
+  listChatHistory(): Promise<ChatHistoryListResult>;
+  loadChatHistory(id: string): Promise<ChatHistoryLoadResult>;
+  newChatHistory(): Promise<ChatHistoryNewResult>;
+  removeChatHistory(id: string): Promise<ChatHistoryRemoveResult>;
+}
+
+export function createChatHistoryCallbacks(): ChatHistoryCallbacks {
+  return {
+    listChatHistory: () => window.thesisApi.listChatHistory(),
+    loadChatHistory: (id) => window.thesisApi.loadChatHistory(id),
+    newChatHistory: () => window.thesisApi.newChatHistory(),
+    removeChatHistory: (id) => window.thesisApi.removeChatHistory(id),
+  };
+}
+
+export function createGateHistoryScreenCallbacks(): GateHistoryScreenCallbacks {
+  return {
+    listGateHistory: async () => (await window.thesisApi.listGateHistory()).records,
+    getGateRecord: (id) => window.thesisApi.getGateRecord(id),
+    removeGateRecord: async (id) => (await window.thesisApi.removeGateRecord(id)).ok,
   };
 }

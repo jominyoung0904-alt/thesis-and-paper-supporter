@@ -7,17 +7,32 @@
 
 import type {
   AcademicKeyStatus,
+  ChatHistoryListResult,
+  ChatHistoryLoadResult,
+  ChatHistoryNewResult,
+  ChatHistoryRemoveResult,
   ChatSendResult,
+  GateHistoryGetResult,
+  GateHistoryListResult,
+  GateHistoryRemoveResult,
   IpcAcademicKeyProvider,
   IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
+  IpcPaperMetadata,
+  LibraryListResult,
+  LibraryRemoveResult,
+  LibrarySaveResult,
+  LibraryUpdateMemoResult,
   ProjectArchiveResult,
   ProjectCreateResult,
   ProjectListResult,
   ProjectRenameResult,
   ProjectSwitchResult,
   QualityGateRunResult,
+  ResearchHistoryGetResult,
+  ResearchHistoryListResult,
+  ResearchHistoryRemoveResult,
   ResearchProgressPayload,
   ResearchRunResult,
   SaveAcademicKeyResult,
@@ -54,4 +69,32 @@ export interface ThesisApi {
   switchProject(id: string): Promise<ProjectSwitchResult>;
   /** Archives (soft-deletes) a project, hiding it from the switch list (FR-PRJ-005). */
   archiveProject(id: string): Promise<ProjectArchiveResult>;
+  /** Saves a paper's full metadata into the current project's library (FR-LIB-001). */
+  saveToLibrary(paper: IpcPaperMetadata, sourceResearchId?: string): Promise<LibrarySaveResult>;
+  /** Lists the current project's saved papers (FR-LIB-002). */
+  listLibrary(): Promise<LibraryListResult>;
+  /** Updates the one-line memo on a saved paper (FR-LIB-002). */
+  updateLibraryMemo(id: string, memo: string): Promise<LibraryUpdateMemoResult>;
+  /** Removes a saved paper (FR-LIB-002). */
+  removeFromLibrary(id: string): Promise<LibraryRemoveResult>;
+  /** Lists saved research records for the active project (FR-RSH-002). */
+  listResearchHistory(): Promise<ResearchHistoryListResult>;
+  /** Loads a single full research record by id (FR-RSH-002). */
+  getResearchHistoryRecord(id: string): Promise<ResearchHistoryGetResult>;
+  /** Deletes a single research record by id (FR-RSH-002). */
+  removeResearchHistoryRecord(id: string): Promise<ResearchHistoryRemoveResult>;
+  /** Lists saved chat session summaries for the active project (FR-CHM-002). */
+  listChatHistory(): Promise<ChatHistoryListResult>;
+  /** Loads one saved session's transcript and makes it the active session (FR-CHM-003). */
+  loadChatHistory(id: string): Promise<ChatHistoryLoadResult>;
+  /** Clears the active session so the next chat:send starts a brand-new one (FR-CHM-004). */
+  newChatHistory(): Promise<ChatHistoryNewResult>;
+  /** Deletes a saved session (FR-CHM-004). */
+  removeChatHistory(id: string): Promise<ChatHistoryRemoveResult>;
+  /** Lists every saved quality-gate check record (summary view) for the active project (FR-WRT-008). */
+  listGateHistory(): Promise<GateHistoryListResult>;
+  /** Loads a single full gate record (checked text + full result) by id (FR-WRT-008). */
+  getGateRecord(id: string): Promise<GateHistoryGetResult>;
+  /** Deletes a single gate record by id (FR-WRT-008). */
+  removeGateRecord(id: string): Promise<GateHistoryRemoveResult>;
 }

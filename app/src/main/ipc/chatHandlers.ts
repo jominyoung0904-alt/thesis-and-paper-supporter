@@ -14,6 +14,8 @@ import { translateLlmError } from '../../core/llm/errorTranslator';
 import type { MemoryStore } from '../../core/memory/store';
 import { IpcChannels } from '../../shared/ipc-channels';
 import type { ChatSendRequest, ChatSendResult, SaveDecisionRequest } from '../../shared/ipc-channels';
+import { recordChatTurn } from './chatHistoryHandlers';
+import type { ActiveChatSession } from './chatHistoryHandlers';
 import type { ConversationManagerHolder } from './guards';
 import { INVALID_REQUEST_MESSAGE, isBoundedString } from './guards';
 import { NO_KEY_MESSAGE } from './llmService';
@@ -28,6 +30,10 @@ export interface ChatHandlerDeps {
    */
   getMemoryStore: () => MemoryStore;
   conversation: ConversationManagerHolder;
+  /** Active project's chats directory, re-invoked on every call (mirrors getMemoryStore). */
+  getChatsDir: () => string;
+  /** Tracks which saved session (if any) the live transcript belongs to (T53, FR-CHM-*). */
+  activeChatSession: ActiveChatSession;
 }
 
 const MAX_CHAT_TEXT_LENGTH = 20_000;
@@ -35,7 +41,7 @@ const MAX_DECISION_FIELD_LENGTH = 2_000;
 
 /** Registers `chat:send` and `memory:save-decision`. */
 export function registerChatHandlers(deps: ChatHandlerDeps): void {
-  const { llmService, getMemoryStore, conversation } = deps;
+  const { llmService, getMemoryStore, conversation, getChatsDir, activeChatSession } = deps;
 
   ipcMain.handle(IpcChannels.CHAT_SEND, async (_event, payload: ChatSendRequest): Promise<ChatSendResult> => {
     if (!isBoundedString(payload?.text, MAX_CHAT_TEXT_LENGTH)) {
@@ -55,6 +61,9 @@ export function registerChatHandlers(deps: ChatHandlerDeps): void {
 
     try {
       const result = await manager.send(payload.text);
+      // Autosave hook (T53, FR-CHM-001) — recordChatTurn never throws, so a
+      // save failure cannot break the chat response already computed above.
+      recordChatTurn(getChatsDir(), activeChatSession, manager.getHistory());
       return { reply: result.reply, suggestedDecision: result.suggestedDecision };
     } catch (err) {
       throw new Error(translateLlmError(err).message);

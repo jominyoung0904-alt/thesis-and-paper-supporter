@@ -28,9 +28,11 @@ import type {
   ResearchRunResult,
 } from '../../shared/ipc-channels';
 import { buildAcademicClients } from './academicClients';
+import { saveGateRecord } from './gateHistoryHandlers';
 import { INVALID_REQUEST_MESSAGE, isBoundedString } from './guards';
 import { NO_KEY_MESSAGE } from './llmService';
 import type { LlmService } from './llmService';
+import { saveResearchRecord } from './researchHistoryHandlers';
 import { mapDeepResearchResult } from './researchMapper';
 
 export interface ResearchGateHandlerDeps {
@@ -43,6 +45,18 @@ export interface ResearchGateHandlerDeps {
   getMemoryStore: () => MemoryStore;
   keyStore: KeyStore;
   getSettings: () => AppSettings;
+  /**
+   * Returns the ACTIVE project's research history directory. Passed to
+   * `saveResearchRecord()` right after a successful research:run
+   * (FR-RSH-001) — re-invoked per call for the same project-switch reason
+   * as `getMemoryStore`.
+   */
+  getResearchDir: () => string;
+  /**
+   * Returns the ACTIVE project's gate history directory (FR-WRT-008).
+   * Re-invoked on every call — same pattern as `getMemoryStore`.
+   */
+  getGateDir: () => string;
 }
 
 const MAX_QUESTION_LENGTH = 2_000;
@@ -57,7 +71,7 @@ const VALID_GATE_SECTIONS = Object.keys(GATE_DEFINITIONS);
 
 /** Registers `research:run` and `quality-gate:run`. */
 export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): void {
-  const { llmService, getMemoryStore, keyStore, getSettings } = deps;
+  const { llmService, getMemoryStore, keyStore, getSettings, getResearchDir, getGateDir } = deps;
 
   ipcMain.handle(
     IpcChannels.RESEARCH_RUN,
@@ -82,6 +96,10 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
             event.sender.send(IpcChannels.RESEARCH_PROGRESS, progressEvent);
           },
         });
+        // Auto-save (FR-RSH-001): saveResearchRecord() owns its own
+        // try/catch and only ever logs — it can never throw here and never
+        // delays/replaces the response returned below.
+        saveResearchRecord(getResearchDir(), payload.question, result);
         return mapDeepResearchResult(result);
       } catch (err) {
         throw new Error(translateLlmError(err).message);
@@ -103,11 +121,14 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
       }
 
       try {
-        return await runQualityGate(definition, payload.text, {
+        const result = await runQualityGate(definition, payload.text, {
           llm: llmService.getAdapter(),
           model: llmService.getModel(),
           memory: serializeMemoryForPrompt(getMemoryStore().getSnapshot()),
         });
+        // FR-WRT-008: save-on-success, never blocks/throws on failure.
+        saveGateRecord(getGateDir(), payload.sectionId, payload.text, result);
+        return result;
       } catch (err) {
         throw new Error(translateLlmError(err).message);
       }

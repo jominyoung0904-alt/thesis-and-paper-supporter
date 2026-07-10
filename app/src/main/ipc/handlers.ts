@@ -31,10 +31,15 @@ import { indexFilePath } from '../project/projectPaths';
 import type { ConversationManagerHolder } from './guards';
 import { registerAcademicKeyHandlers } from './academicKeyHandlers';
 import { registerChatHandlers } from './chatHandlers';
+import { createActiveChatSession, registerChatHistoryHandlers } from './chatHistoryHandlers';
+import type { ActiveChatSession } from './chatHistoryHandlers';
+import { registerGateHistoryHandlers } from './gateHistoryHandlers';
+import { registerLibraryHandlers } from './libraryHandlers';
 import { createLlmService } from './llmService';
 import { ProjectContext } from './projectContext';
 import { registerProjectHandlers } from './projectHandlers';
 import { registerResearchGateHandlers } from './researchGateHandlers';
+import { registerResearchHistoryHandlers } from './researchHistoryHandlers';
 import { registerSettingsHandlers } from './settingsHandlers';
 
 export interface IpcHandlerDeps {
@@ -94,7 +99,13 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   // builds fresh against the now-active project) and thus never risks
   // `buildConversationManager()`'s eager `llmService.getAdapter()` throwing
   // before a key is registered.
+  // Tracks which saved chat session (if any) the live transcript belongs to
+  // (T53, FR-CHM-*). Cleared on project switch below — the previous
+  // project's session id is meaningless for the new project.
+  const activeChatSession: ActiveChatSession = createActiveChatSession();
+
   projectContext.onSwitch(() => {
+    activeChatSession.clear();
     if (!conversation.get()) return;
     const rebuilt = conversation.build();
     rebuilt.restoreHistory([]);
@@ -102,9 +113,17 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   });
 
   const getMemoryStore = () => projectContext.getServices().memoryStore;
+  const getLibraryFile = () => projectContext.getServices().projectPaths.libraryFile;
+  const getResearchDir = () => projectContext.getServices().projectPaths.researchDir;
+  const getChatsDir = () => projectContext.getServices().projectPaths.chatsDir;
+  const getGateDir = () => projectContext.getServices().projectPaths.gateDir;
 
   registerSettingsHandlers({ keyStore, settingsFile, getSettings, setSettings, llmService, conversation });
-  registerChatHandlers({ llmService, getMemoryStore, conversation });
-  registerResearchGateHandlers({ llmService, getMemoryStore, keyStore, getSettings });
+  registerChatHandlers({ llmService, getMemoryStore, conversation, getChatsDir, activeChatSession });
+  registerResearchGateHandlers({ llmService, getMemoryStore, keyStore, getSettings, getResearchDir, getGateDir });
   registerProjectHandlers({ indexStore, projectContext });
+  registerLibraryHandlers({ getLibraryFile });
+  registerResearchHistoryHandlers({ getResearchDir });
+  registerChatHistoryHandlers({ getChatsDir, conversation, activeSession: activeChatSession });
+  registerGateHistoryHandlers({ getGateDir });
 }

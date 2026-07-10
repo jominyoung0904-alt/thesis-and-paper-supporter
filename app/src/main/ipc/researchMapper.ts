@@ -32,6 +32,20 @@ function mapPaper(screened: DeepResearchResult['papers'][number]): ResearchPaper
     year: paper.year,
     url: paper.url,
     source: SOURCE_LABELS[paper.source],
+    // Raw metadata rides along untouched so the renderer's library save
+    // button (FR-LIB-001) can persist the full record — the display fields
+    // above lose `externalId`/raw `source`, the duplicate-detection key.
+    metadata: {
+      source: paper.source,
+      externalId: paper.externalId,
+      title: paper.title,
+      authors: paper.authors,
+      year: paper.year,
+      abstract: paper.abstract,
+      venue: paper.venue,
+      url: paper.url,
+      citationCount: paper.citationCount,
+    },
   };
 }
 

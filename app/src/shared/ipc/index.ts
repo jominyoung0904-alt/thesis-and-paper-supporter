@@ -19,3 +19,7 @@ export * from './research';
 export * from './gate';
 export * from './academic';
 export * from './project';
+export * from './library';
+export * from './researchHistory';
+export * from './chatHistory';
+export * from './gateHistory';

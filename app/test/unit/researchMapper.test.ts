@@ -39,7 +39,16 @@ describe('mapDeepResearchResult', () => {
     );
 
     expect(mapped.papers).toEqual([
-      { title: '논문 A', authors: ['홍길동'], year: 2024, url: 'https://example.com/paper', source: 'Semantic Scholar' },
+      {
+        title: '논문 A',
+        authors: ['홍길동'],
+        year: 2024,
+        url: 'https://example.com/paper',
+        source: 'Semantic Scholar',
+        // Raw metadata rides along for the library save button (FR-LIB-001) —
+        // note `source` here is the raw id, not the display label above.
+        metadata: paper({ title: '논문 A', source: 'semanticscholar' }),
+      },
     ]);
   });
 
@@ -52,10 +61,24 @@ describe('mapDeepResearchResult', () => {
     );
 
     expect(mapped.citedPapers).toEqual([
-      { title: '인용 논문', authors: ['홍길동'], year: 2024, url: 'https://example.com/paper', source: 'KCI' },
+      {
+        title: '인용 논문',
+        authors: ['홍길동'],
+        year: 2024,
+        url: 'https://example.com/paper',
+        source: 'KCI',
+        metadata: paper({ title: '인용 논문' }),
+      },
     ]);
     expect(mapped.relatedPapers).toEqual([
-      { title: '관련 논문', authors: ['홍길동'], year: 2024, url: 'https://example.com/paper', source: 'KCI' },
+      {
+        title: '관련 논문',
+        authors: ['홍길동'],
+        year: 2024,
+        url: 'https://example.com/paper',
+        source: 'KCI',
+        metadata: paper({ title: '관련 논문' }),
+      },
     ]);
   });
 

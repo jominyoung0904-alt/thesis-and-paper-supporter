@@ -12,11 +12,26 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 import type {
   AcademicKeyStatus,
+  ChatHistoryListResult,
+  ChatHistoryLoadResult,
+  ChatHistoryNewResult,
+  ChatHistoryRemoveResult,
   ChatSendResult,
+  GateHistoryGetResult,
+  GateHistoryListResult,
+  GateHistoryRemoveResult,
   IpcAcademicKeyProvider,
   IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
+  IpcPaperMetadata,
+  LibraryListResult,
+  LibraryRemoveRequest,
+  LibraryRemoveResult,
+  LibrarySaveRequest,
+  LibrarySaveResult,
+  LibraryUpdateMemoRequest,
+  LibraryUpdateMemoResult,
   OpenExternalRequest,
   ProjectArchiveRequest,
   ProjectArchiveResult,
@@ -29,6 +44,9 @@ import type {
   ProjectSwitchResult,
   QualityGateRunRequest,
   QualityGateRunResult,
+  ResearchHistoryGetResult,
+  ResearchHistoryListResult,
+  ResearchHistoryRemoveResult,
   ResearchProgressPayload,
   ResearchRunResult,
   SaveAcademicKeyRequest,
@@ -65,6 +83,20 @@ const IpcChannels = {
   PROJECT_RENAME: 'project:rename',
   PROJECT_SWITCH: 'project:switch',
   PROJECT_ARCHIVE: 'project:archive',
+  LIBRARY_SAVE: 'library:save',
+  LIBRARY_LIST: 'library:list',
+  LIBRARY_UPDATE_MEMO: 'library:update-memo',
+  LIBRARY_REMOVE: 'library:remove',
+  RESEARCH_HISTORY_LIST: 'research-history:list',
+  RESEARCH_HISTORY_GET: 'research-history:get',
+  RESEARCH_HISTORY_REMOVE: 'research-history:remove',
+  CHAT_HISTORY_LIST: 'chat-history:list',
+  CHAT_HISTORY_LOAD: 'chat-history:load',
+  CHAT_HISTORY_NEW: 'chat-history:new',
+  CHAT_HISTORY_REMOVE: 'chat-history:remove',
+  GATE_HISTORY_LIST: 'gate-history:list',
+  GATE_HISTORY_GET: 'gate-history:get',
+  GATE_HISTORY_REMOVE: 'gate-history:remove',
 } as const;
 
 const thesisApi: ThesisApi = {
@@ -148,6 +180,65 @@ const thesisApi: ThesisApi = {
   archiveProject(id: string): Promise<ProjectArchiveResult> {
     const req: ProjectArchiveRequest = { id };
     return ipcRenderer.invoke(IpcChannels.PROJECT_ARCHIVE, req) as Promise<ProjectArchiveResult>;
+  },
+
+  saveToLibrary(paper: IpcPaperMetadata, sourceResearchId?: string): Promise<LibrarySaveResult> {
+    const req: LibrarySaveRequest = { paper, sourceResearchId };
+    return ipcRenderer.invoke(IpcChannels.LIBRARY_SAVE, req) as Promise<LibrarySaveResult>;
+  },
+
+  listLibrary(): Promise<LibraryListResult> {
+    return ipcRenderer.invoke(IpcChannels.LIBRARY_LIST) as Promise<LibraryListResult>;
+  },
+
+  updateLibraryMemo(id: string, memo: string): Promise<LibraryUpdateMemoResult> {
+    const req: LibraryUpdateMemoRequest = { id, memo };
+    return ipcRenderer.invoke(IpcChannels.LIBRARY_UPDATE_MEMO, req) as Promise<LibraryUpdateMemoResult>;
+  },
+
+  removeFromLibrary(id: string): Promise<LibraryRemoveResult> {
+    const req: LibraryRemoveRequest = { id };
+    return ipcRenderer.invoke(IpcChannels.LIBRARY_REMOVE, req) as Promise<LibraryRemoveResult>;
+  },
+
+  listResearchHistory(): Promise<ResearchHistoryListResult> {
+    return ipcRenderer.invoke(IpcChannels.RESEARCH_HISTORY_LIST) as Promise<ResearchHistoryListResult>;
+  },
+
+  getResearchHistoryRecord(id: string): Promise<ResearchHistoryGetResult> {
+    return ipcRenderer.invoke(IpcChannels.RESEARCH_HISTORY_GET, { id }) as Promise<ResearchHistoryGetResult>;
+  },
+
+  removeResearchHistoryRecord(id: string): Promise<ResearchHistoryRemoveResult> {
+    return ipcRenderer.invoke(IpcChannels.RESEARCH_HISTORY_REMOVE, { id }) as Promise<ResearchHistoryRemoveResult>;
+  },
+
+  listChatHistory(): Promise<ChatHistoryListResult> {
+    return ipcRenderer.invoke(IpcChannels.CHAT_HISTORY_LIST) as Promise<ChatHistoryListResult>;
+  },
+
+  loadChatHistory(id: string): Promise<ChatHistoryLoadResult> {
+    return ipcRenderer.invoke(IpcChannels.CHAT_HISTORY_LOAD, { id }) as Promise<ChatHistoryLoadResult>;
+  },
+
+  newChatHistory(): Promise<ChatHistoryNewResult> {
+    return ipcRenderer.invoke(IpcChannels.CHAT_HISTORY_NEW) as Promise<ChatHistoryNewResult>;
+  },
+
+  removeChatHistory(id: string): Promise<ChatHistoryRemoveResult> {
+    return ipcRenderer.invoke(IpcChannels.CHAT_HISTORY_REMOVE, { id }) as Promise<ChatHistoryRemoveResult>;
+  },
+
+  listGateHistory(): Promise<GateHistoryListResult> {
+    return ipcRenderer.invoke(IpcChannels.GATE_HISTORY_LIST) as Promise<GateHistoryListResult>;
+  },
+
+  getGateRecord(id: string): Promise<GateHistoryGetResult> {
+    return ipcRenderer.invoke(IpcChannels.GATE_HISTORY_GET, { id }) as Promise<GateHistoryGetResult>;
+  },
+
+  removeGateRecord(id: string): Promise<GateHistoryRemoveResult> {
+    return ipcRenderer.invoke(IpcChannels.GATE_HISTORY_REMOVE, { id }) as Promise<GateHistoryRemoveResult>;
   },
 };
 

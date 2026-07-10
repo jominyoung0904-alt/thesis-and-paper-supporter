@@ -1,0 +1,162 @@
+/*
+ * Gate-history screen styling. Same large-text, high-contrast approach as
+ * `writingCheckScreen.css` / `qualityGateView.css` — the audience is
+ * non-technical grad students.
+ */
+
+.gate-history-screen {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 18px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gate-history-lead {
+  font-size: 18px;
+  margin: 0;
+}
+
+.gate-history-status {
+  color: #444;
+  margin: 0;
+}
+
+.gate-history-error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.gate-history-empty {
+  color: #666;
+  margin: 0;
+}
+
+.gate-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gate-history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.gate-history-item-selected {
+  border-color: #2563eb;
+}
+
+.gate-history-item-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.gate-history-item-icon {
+  font-size: 18px;
+}
+
+.gate-history-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gate-history-item-date {
+  font-size: 14px;
+  color: #666;
+}
+
+.gate-history-item-preview {
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gate-history-item-remove {
+  border: none;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+.gate-history-detail {
+  border-top: 2px solid #ddd;
+  padding-top: 16px;
+}
+
+.gate-history-detail-title {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+}
+
+.gate-history-detail-banner-pass {
+  background: #dcfce7;
+  color: #166534;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.gate-history-detail-banner-fail {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.gate-history-detail-criteria {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gate-history-detail-criterion-pass {
+  color: #166534;
+}
+
+.gate-history-detail-criterion-fail {
+  color: #92400e;
+}
+
+.gate-history-detail-text-title {
+  margin: 20px 0 8px 0;
+  font-size: 16px;
+}
+
+.gate-history-detail-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 0;
+}

@@ -43,6 +43,34 @@ export const IpcChannels = {
   PROJECT_SWITCH: 'project:switch',
   /** Archives (soft-deletes) a project, hiding it from the switch list (FR-PRJ-005). */
   PROJECT_ARCHIVE: 'project:archive',
+  /** Saves a paper's full metadata into the current project's library (FR-LIB-001). */
+  LIBRARY_SAVE: 'library:save',
+  /** Lists the current project's saved papers, most recently saved first (FR-LIB-002). */
+  LIBRARY_LIST: 'library:list',
+  /** Updates the one-line memo on a saved paper (FR-LIB-002). */
+  LIBRARY_UPDATE_MEMO: 'library:update-memo',
+  /** Removes a saved paper (FR-LIB-002). */
+  LIBRARY_REMOVE: 'library:remove',
+  /** Lists every saved research record (summary view) for the active project (FR-RSH-002). */
+  RESEARCH_HISTORY_LIST: 'research-history:list',
+  /** Loads a single full research record by id (FR-RSH-002). */
+  RESEARCH_HISTORY_GET: 'research-history:get',
+  /** Deletes a single research record by id (FR-RSH-002). */
+  RESEARCH_HISTORY_REMOVE: 'research-history:remove',
+  /** Lists saved chat session summaries for the active project (FR-CHM-002). */
+  CHAT_HISTORY_LIST: 'chat-history:list',
+  /** Loads one saved session's transcript and makes it the active session (FR-CHM-003). */
+  CHAT_HISTORY_LOAD: 'chat-history:load',
+  /** Clears the active session so the next chat:send starts a brand-new one (FR-CHM-004). */
+  CHAT_HISTORY_NEW: 'chat-history:new',
+  /** Deletes a saved session (FR-CHM-004). */
+  CHAT_HISTORY_REMOVE: 'chat-history:remove',
+  /** Lists every saved quality-gate record (summary view) for the active project (FR-WRT-008). */
+  GATE_HISTORY_LIST: 'gate-history:list',
+  /** Loads a single full gate record (checked text + full result) by id (FR-WRT-008). */
+  GATE_HISTORY_GET: 'gate-history:get',
+  /** Deletes a single gate record by id (FR-WRT-008). */
+  GATE_HISTORY_REMOVE: 'gate-history:remove',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];
