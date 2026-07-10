@@ -11,18 +11,12 @@
  */
 import { useEffect, useState } from 'react';
 
+import { LibraryItem } from './LibraryItem';
+import { LibraryToolbar } from './LibraryToolbar';
+import { NotebookLmGuide } from './NotebookLmGuide';
 import type { LibraryScreenCallbacks } from '../appCallbacks';
 import type { IpcSavedPaper } from '../../shared/ipc-channels';
-import {
-  formatAuthors,
-  formatSavedAt,
-  formatYear,
-  isMemoTooLong,
-  MEMO_MAX_LENGTH,
-  remainingMemoChars,
-  sourceLabel,
-  toDisplayErrorMessage,
-} from './libraryLogic';
+import { isMemoTooLong, MEMO_MAX_LENGTH, toDisplayErrorMessage, toggleSelected, toggleSelectAll } from './libraryLogic';
 import './libraryScreen.css';
 
 export interface LibraryScreenProps {
@@ -39,12 +33,18 @@ export function LibraryScreen({ callbacks }: LibraryScreenProps): JSX.Element {
   const [savingMemoId, setSavingMemoId] = useState<string | null>(null);
   const [memoError, setMemoError] = useState<string | null>(null);
 
+  // Screen-local checkbox selection for the APA/NotebookLM copy toolbar
+  // (FR-LIB-003) — never persisted, reset whenever the list reloads.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   async function loadList(): Promise<void> {
     setLoading(true);
     setListError(null);
     try {
       const result = await callbacks.listLibrary();
       setPapers(result.papers);
+      const stillPresent = new Set(result.papers.map((paper) => paper.id));
+      setSelectedIds((prev) => new Set([...prev].filter((id) => stillPresent.has(id))));
     } catch (error) {
       setListError(toDisplayErrorMessage(error));
     } finally {
@@ -114,9 +114,18 @@ export function LibraryScreen({ callbacks }: LibraryScreenProps): JSX.Element {
     await loadList();
   }
 
+  function handleToggleOne(id: string): void {
+    setSelectedIds((prev) => toggleSelected(prev, id));
+  }
+
+  function handleToggleAll(): void {
+    setSelectedIds((prev) => toggleSelectAll(papers, prev));
+  }
+
   return (
     <div className="library-screen">
       <p className="library-lead">지금까지 저장한 문헌이에요.</p>
+      <NotebookLmGuide onOpenLink={callbacks.openLink} />
 
       {loading && (
         <p className="library-status" role="status">
@@ -133,153 +142,30 @@ export function LibraryScreen({ callbacks }: LibraryScreenProps): JSX.Element {
       )}
 
       {!loading && papers.length > 0 && (
-        <ul className="library-list">
-          {papers.map((paper) => (
-            <LibraryItem
-              key={paper.id}
-              paper={paper}
-              editing={editingId === paper.id}
-              editingMemo={editingMemo}
-              saving={savingMemoId === paper.id}
-              memoError={editingId === paper.id ? memoError : null}
-              onOpenLink={callbacks.openLink}
-              onStartEdit={() => handleStartEdit(paper)}
-              onCancelEdit={handleCancelEdit}
-              onChangeMemo={setEditingMemo}
-              onSaveMemo={() => void handleSaveMemo(paper.id)}
-              onRemove={() => void handleRemove(paper.id)}
-            />
-          ))}
-        </ul>
+        <>
+          <LibraryToolbar papers={papers} selected={selectedIds} onToggleAll={handleToggleAll} />
+          <ul className="library-list">
+            {papers.map((paper) => (
+              <LibraryItem
+                key={paper.id}
+                paper={paper}
+                selected={selectedIds.has(paper.id)}
+                editing={editingId === paper.id}
+                editingMemo={editingMemo}
+                saving={savingMemoId === paper.id}
+                memoError={editingId === paper.id ? memoError : null}
+                onOpenLink={callbacks.openLink}
+                onToggleSelect={() => handleToggleOne(paper.id)}
+                onStartEdit={() => handleStartEdit(paper)}
+                onCancelEdit={handleCancelEdit}
+                onChangeMemo={setEditingMemo}
+                onSaveMemo={() => void handleSaveMemo(paper.id)}
+                onRemove={() => void handleRemove(paper.id)}
+              />
+            ))}
+          </ul>
+        </>
       )}
-    </div>
-  );
-}
-
-interface LibraryItemProps {
-  paper: IpcSavedPaper;
-  editing: boolean;
-  editingMemo: string;
-  saving: boolean;
-  memoError: string | null;
-  onOpenLink(url: string): void;
-  onStartEdit(): void;
-  onCancelEdit(): void;
-  onChangeMemo(memo: string): void;
-  onSaveMemo(): void;
-  onRemove(): void;
-}
-
-function LibraryItem({
-  paper,
-  editing,
-  editingMemo,
-  saving,
-  memoError,
-  onOpenLink,
-  onStartEdit,
-  onCancelEdit,
-  onChangeMemo,
-  onSaveMemo,
-  onRemove,
-}: LibraryItemProps): JSX.Element {
-  const { paper: metadata } = paper;
-  return (
-    <li className="library-item">
-      <div className="library-item-header">
-        {metadata.url ? (
-          <button type="button" className="library-item-title-link" onClick={() => onOpenLink(metadata.url as string)}>
-            {metadata.title}
-          </button>
-        ) : (
-          <span className="library-item-title">{metadata.title}</span>
-        )}
-        <button type="button" className="library-item-remove" onClick={onRemove} aria-label={`${metadata.title} 삭제`}>
-          삭제
-        </button>
-      </div>
-      <p className="library-item-meta">
-        {formatAuthors(metadata.authors)} ({formatYear(metadata.year)}) · {sourceLabel(metadata.source)} · 저장일{' '}
-        {formatSavedAt(paper.savedAt)}
-      </p>
-      <MemoEditor
-        memo={paper.memo}
-        editing={editing}
-        editingMemo={editingMemo}
-        saving={saving}
-        error={memoError}
-        onStartEdit={onStartEdit}
-        onCancelEdit={onCancelEdit}
-        onChangeMemo={onChangeMemo}
-        onSaveMemo={onSaveMemo}
-      />
-    </li>
-  );
-}
-
-interface MemoEditorProps {
-  memo: string;
-  editing: boolean;
-  editingMemo: string;
-  saving: boolean;
-  error: string | null;
-  onStartEdit(): void;
-  onCancelEdit(): void;
-  onChangeMemo(memo: string): void;
-  onSaveMemo(): void;
-}
-
-function MemoEditor({
-  memo,
-  editing,
-  editingMemo,
-  saving,
-  error,
-  onStartEdit,
-  onCancelEdit,
-  onChangeMemo,
-  onSaveMemo,
-}: MemoEditorProps): JSX.Element {
-  if (!editing) {
-    return (
-      <div className="library-item-memo-row">
-        <span className="library-item-memo">{memo.length > 0 ? memo : '메모 없음'}</span>
-        <button type="button" className="library-item-memo-edit" onClick={onStartEdit}>
-          메모 편집
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="library-item-memo-editor">
-      <input
-        type="text"
-        className="library-item-memo-input"
-        value={editingMemo}
-        maxLength={MEMO_MAX_LENGTH}
-        onChange={(event) => onChangeMemo(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') onSaveMemo();
-          if (event.key === 'Escape') onCancelEdit();
-        }}
-        aria-label="문헌 메모"
-        autoFocus
-      />
-      <span className="library-item-memo-count">{remainingMemoChars(editingMemo)}자 남음</span>
-      {error && (
-        <p className="library-item-memo-error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="library-item-memo-actions">
-        <button type="button" onClick={onSaveMemo} disabled={saving}>
-          {saving ? '저장 중…' : '저장'}
-        </button>
-        <button type="button" onClick={onCancelEdit} disabled={saving}>
-          취소
-        </button>
-      </div>
     </div>
   );
 }

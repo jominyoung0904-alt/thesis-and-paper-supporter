@@ -12,6 +12,8 @@
  */
 
 import type { IpcAcademicSource, IpcPaperMetadata, IpcSavedPaper } from '../../shared/ipc-channels';
+import type { PaperMetadata } from '../../core/academic-api/types';
+import { formatApaList } from '../../core/library/bibliography';
 
 /** Human-readable Korean labels for each academic source (mirrors `core/research-pipeline/types.ts`'s `SOURCE_LABELS`). */
 export const SOURCE_LABELS: Record<IpcAcademicSource, string> = {
@@ -82,4 +84,64 @@ export function toDisplayErrorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0
     ? error.message
     : '문헌 보관함을 불러오지 못했어요. 다시 시도해 주세요.';
+}
+
+// --- selection helpers (FR-LIB-003: bulk "select papers, then copy") ---
+
+/** Returns a new selection set with `id`'s membership flipped (never mutates `selected`). */
+export function toggleSelected(selected: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(selected);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  return next;
+}
+
+/** Whether every paper currently in the library is selected (false for an empty library). */
+export function isAllSelected(papers: IpcSavedPaper[], selected: ReadonlySet<string>): boolean {
+  return papers.length > 0 && papers.every((paper) => selected.has(paper.id));
+}
+
+/** "전체 선택/해제" toggle: clears the selection if everything is already selected, else selects everything. */
+export function toggleSelectAll(papers: IpcSavedPaper[], selected: ReadonlySet<string>): Set<string> {
+  return isAllSelected(papers, selected) ? new Set() : new Set(papers.map((paper) => paper.id));
+}
+
+/** Filters `papers` down to the ones whose id is in `selected`, preserving list order. */
+export function selectedPapers(papers: IpcSavedPaper[], selected: ReadonlySet<string>): IpcSavedPaper[] {
+  return papers.filter((paper) => selected.has(paper.id));
+}
+
+// --- APA bibliography copy (FR-LIB-003) ---
+
+/**
+ * Adapts the IPC-mirrored `IpcPaperMetadata` shape into `core/library/bibliography.ts`'s
+ * `PaperMetadata`. The two shapes are already field-for-field identical (see
+ * `shared/ipc/library.ts`'s doc comment) — this is a structural pass-through,
+ * not a real conversion, kept explicit only so a future field divergence
+ * fails to compile here instead of silently mis-mapping data.
+ */
+function toPaperMetadata(paper: IpcPaperMetadata): PaperMetadata {
+  return { ...paper };
+}
+
+/**
+ * Formats selected saved papers as an APA-7-approximate bibliography list
+ * (FR-LIB-003), ready for clipboard copy. Imports `core/library/bibliography`
+ * directly rather than mirroring it into `shared/` — that module is a pure,
+ * side-effect-free function with no Electron/Node dependency (only a
+ * type-only import of `PaperMetadata`), so bundling it into the renderer via
+ * Vite carries no main-process leakage risk. This extends the existing
+ * "renderer imports `core/` types" precedent (see `gateViewLogic.ts`) to a
+ * runtime function, since no such precedent existed to copy verbatim.
+ */
+export function toApaBibliography(papers: IpcSavedPaper[]): string {
+  return formatApaList(papers.map((paper) => toPaperMetadata(paper.paper)));
+}
+
+/** Korean confirmation message shown after an APA bibliography copy. */
+export function apaCopyMessage(count: number): string {
+  return `${count}건의 서지를 복사했어요. 논문 참고문헌 목록에 붙여넣으세요.`;
 }
