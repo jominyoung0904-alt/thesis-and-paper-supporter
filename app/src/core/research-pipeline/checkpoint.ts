@@ -24,6 +24,7 @@ import type { PaperMetadata } from '../academic-api/types';
 import type { FailedSource, GeneratedQueries, ScreenedPaper } from './types';
 
 /** Bumped whenever the on-disk shape changes; a mismatch is treated as "no checkpoint". */
+// @AX:ANCHOR: [AUTO] checkpoint schema version gate — bump this on any on-disk shape change, mismatches silently discard the checkpoint. Related: SPEC-TSA-002 T61
 export const CHECKPOINT_SCHEMA_VERSION = 1;
 
 /** Coarse marker of how far a checkpointed run had progressed. */

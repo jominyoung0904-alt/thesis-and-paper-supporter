@@ -61,6 +61,7 @@ const MIGRATION_ERROR_MESSAGE =
  * index. Idempotent — once `index.json` exists, every subsequent call is a
  * no-op (branch 1). See module doc for the full branch breakdown.
  */
+// @AX:ANCHOR: [AUTO] three-branch migration gate — branch order is spec-mandated, never throws (NFR-OPS-003). Related: SPEC-TSA-002 T39
 export function migrateDefaultProject(dataDir: string, fsOverrides: MigrationFsOverrides = {}): MigrationResult {
   const exists = fsOverrides.existsSync ?? existsSync;
   const rename = fsOverrides.renameSync ?? renameSync;

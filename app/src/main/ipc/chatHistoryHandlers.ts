@@ -41,6 +41,7 @@ const MAX_SESSION_ID_LENGTH = 200;
  * creates one. Reset to `null` on `chat-history:new` and on a project switch
  * (a different project's session ids are meaningless for the new project).
  */
+// @AX:ANCHOR: [AUTO] cross-module contract — mutated by chatHandlers.ts and reset via projectContext.onSwitch; keep the null-means-unsaved invariant. Related: SPEC-TSA-002 T53
 export interface ActiveChatSession {
   get(): string | null;
   set(id: string): void;

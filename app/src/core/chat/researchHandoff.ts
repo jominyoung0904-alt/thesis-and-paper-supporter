@@ -30,6 +30,7 @@ import type { ChatMessage } from './types';
 const REPORT_CHAR_LIMIT = 6000;
 
 /** Hard cap on the full injected user-turn text, regardless of report length (FR-RSH-004). */
+// @AX:ANCHOR: [AUTO] token-budget ceiling for the injected handoff turn — raising this risks blowing the LLM context window. Related: SPEC-TSA-002 T50
 const TOTAL_CHAR_HARD_CAP = 8000;
 
 /** Max cited-paper entries listed in the injected summary. */

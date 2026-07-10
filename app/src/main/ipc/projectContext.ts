@@ -86,6 +86,7 @@ const NOT_INITIALIZED = 'ProjectContext is not initialized — call initialize()
  * thread-safe by design: a single instance backs the one active project in the
  * main process, exactly like the ConversationManager it will sit alongside.
  */
+// @AX:ANCHOR: [AUTO] project-scoped service reassembly root — every domain store is rebuilt here on project switch. Related: SPEC-TSA-002 T41
 export class ProjectContext {
   private readonly deps: ProjectContextDeps;
   private readonly switchListeners = new Set<SwitchListener>();

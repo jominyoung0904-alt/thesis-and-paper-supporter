@@ -110,6 +110,7 @@ const defaultSpawnFn: SpawnFn = (command, args, options) =>
  * throwing. Pruning to `maxBackups` runs once the spawned process closes,
  * so it reflects the backup set as it actually exists on disk.
  */
+// @AX:ANCHOR: [AUTO] backup-timing entry point — invoked at session START, not on quit, per the module-doc rationale above. Related: SPEC-TSA-002 T58
 export function runSessionBackup(options: RunSessionBackupOptions): BackupResult {
   const { dataDir, backupsDir, maxBackups = DEFAULT_MAX_BACKUPS } = options;
   const spawnFn = options.spawnFn ?? defaultSpawnFn;
