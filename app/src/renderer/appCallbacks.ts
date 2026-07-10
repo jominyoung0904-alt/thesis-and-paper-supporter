@@ -16,6 +16,13 @@ import type { WizardCallbacks } from './settings/wizard';
 import type { SettingsScreenCallbacks } from './settings/SettingsScreen';
 import type { ChatScreenCallbacks } from './chat';
 import type { WritingCheckCallbacks } from './writing/WritingCheckScreen';
+import type {
+  ProjectArchiveResult,
+  ProjectCreateResult,
+  ProjectListResult,
+  ProjectRenameResult,
+  ProjectSwitchResult,
+} from '../shared/ipc-channels';
 
 export function createWizardCallbacks(): WizardCallbacks {
   return {
@@ -73,5 +80,31 @@ export function createSettingsScreenCallbacks(): SettingsScreenCallbacks {
     saveAcademicKey: (provider, key) => window.thesisApi.saveAcademicKey(provider, key),
     getAcademicKeyStatus: () => window.thesisApi.getAcademicKeyStatus(),
     openExternal: (url) => window.thesisApi.openExternal(url),
+  };
+}
+
+/**
+ * Bridge-only callback contract for multi-project management screens
+ * (FR-PRJ-001~006). No renderer UI consumes this yet — T42 owns the actual
+ * project-switcher/management screen and may either import this factory
+ * directly or define its own screen-local `ProjectScreenCallbacks` type that
+ * matches this shape (same "type mirror adapter" pattern as the other
+ * `create*Callbacks` factories in this file).
+ */
+export interface ProjectScreenCallbacks {
+  listProjects(): Promise<ProjectListResult>;
+  createProject(name?: string): Promise<ProjectCreateResult>;
+  renameProject(id: string, name: string): Promise<ProjectRenameResult>;
+  switchProject(id: string): Promise<ProjectSwitchResult>;
+  archiveProject(id: string): Promise<ProjectArchiveResult>;
+}
+
+export function createProjectScreenCallbacks(): ProjectScreenCallbacks {
+  return {
+    listProjects: () => window.thesisApi.listProjects(),
+    createProject: (name) => window.thesisApi.createProject(name),
+    renameProject: (id, name) => window.thesisApi.renameProject(id, name),
+    switchProject: (id) => window.thesisApi.switchProject(id),
+    archiveProject: (id) => window.thesisApi.archiveProject(id),
   };
 }

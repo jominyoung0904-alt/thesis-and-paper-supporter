@@ -50,9 +50,11 @@ import { registerIpcHandlers } from '../../src/main/ipc/handlers';
 import { LlmApiError } from '../../src/core/llm/errors';
 import { MemoryStore } from '../../src/core/memory/store';
 import { serializeMemoryForPrompt } from '../../src/core/memory/serializer';
+import { resolveProjectPaths } from '../../src/main/project/projectPaths';
 import { IpcChannels } from '../../src/shared/ipc-channels';
 import type {
   ChatSendResult,
+  ProjectListResult,
   SaveProviderAndKeyResult,
   StartupState,
 } from '../../src/shared/ipc-channels';
@@ -79,7 +81,7 @@ function assemble(prefix: string): Assembled {
     setSettings: (next) => {
       settings = next;
     },
-    memoryFilePath: join(ws.paths.dataDir, 'projects', 'default', 'memory.json'),
+    dataDir: ws.paths.dataDir,
   });
 
   return {
@@ -238,8 +240,14 @@ describe('채팅 -> 결정 저장 -> 다음 대화 프롬프트 반영 루프 (F
     await assembled.invoke(IpcChannels.MEMORY_SAVE_DECISION, turn1.suggestedDecision);
 
     // Reload from disk with a brand-new MemoryStore instance to prove the
-    // decision was actually persisted, not just held in memory.
-    const reloaded = new MemoryStore(join(assembled.ws.paths.dataDir, 'projects', 'default', 'memory.json'));
+    // decision was actually persisted, not just held in memory. T41
+    // (SPEC-TSA-002): the active project's id is no longer the fixed literal
+    // 'default' — ProjectContext auto-creates a UUID-keyed project when no
+    // index exists yet — so the path is resolved via project:list instead of
+    // being hardcoded.
+    const { activeProjectId } = await assembled.invoke<ProjectListResult>(IpcChannels.PROJECT_LIST);
+    const activeMemoryFile = resolveProjectPaths(assembled.ws.paths.dataDir, activeProjectId!).memoryFile;
+    const reloaded = new MemoryStore(activeMemoryFile);
     reloaded.load();
     const snapshot = reloaded.getSnapshot();
     expect(snapshot.decisions).toHaveLength(1);

@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import type { CryptoBackend } from '../../src/main/config/keyStore';
 import type { AppPaths } from '../../src/shared/types';
 import { ensureAppDirectories, resolveAppPaths } from '../../src/main/paths';
-import type { LlmAdapter, LlmProvider, LlmRequest } from '../../src/core/llm';
+import type { LlmAdapter, LlmMessage, LlmProvider, LlmRequest } from '../../src/core/llm';
 
 /**
  * Deterministic, reversible mock of the platform encryption backend — the
@@ -78,6 +78,8 @@ export interface RecordedCall {
   system?: string;
   content: string;
   model: string;
+  /** Full outgoing message list (role + content), e.g. to assert on history length after a reset. */
+  messages: LlmMessage[];
 }
 
 /** A single scripted turn: canned reply text, or a thunk that throws (simulating a provider failure). */
@@ -101,7 +103,7 @@ export function makeQueueAdapter(
     provider,
     async chat(req: LlmRequest) {
       const content = req.messages[req.messages.length - 1]?.content ?? '';
-      calls.push({ system: req.system, content, model: req.model });
+      calls.push({ system: req.system, content, model: req.model, messages: req.messages });
 
       const turn = script[index++];
       if (turn === undefined) {

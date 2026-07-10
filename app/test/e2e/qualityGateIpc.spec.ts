@@ -70,7 +70,7 @@ function assemble(prefix: string): Assembled {
     setSettings: (next) => {
       settings = next;
     },
-    memoryFilePath: join(ws.paths.dataDir, 'projects', 'default', 'memory.json'),
+    dataDir: ws.paths.dataDir,
   });
 
   return {

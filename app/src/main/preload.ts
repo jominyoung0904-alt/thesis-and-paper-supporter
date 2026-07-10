@@ -18,6 +18,15 @@ import type {
   IpcLlmMode,
   IpcLlmProvider,
   OpenExternalRequest,
+  ProjectArchiveRequest,
+  ProjectArchiveResult,
+  ProjectCreateRequest,
+  ProjectCreateResult,
+  ProjectListResult,
+  ProjectRenameRequest,
+  ProjectRenameResult,
+  ProjectSwitchRequest,
+  ProjectSwitchResult,
   QualityGateRunRequest,
   QualityGateRunResult,
   ResearchProgressPayload,
@@ -51,6 +60,11 @@ const IpcChannels = {
   QUALITY_GATE_RUN: 'quality-gate:run',
   SETTINGS_SAVE_ACADEMIC_KEY: 'settings:save-academic-key',
   SETTINGS_GET_ACADEMIC_KEY_STATUS: 'settings:get-academic-key-status',
+  PROJECT_LIST: 'project:list',
+  PROJECT_CREATE: 'project:create',
+  PROJECT_RENAME: 'project:rename',
+  PROJECT_SWITCH: 'project:switch',
+  PROJECT_ARCHIVE: 'project:archive',
 } as const;
 
 const thesisApi: ThesisApi = {
@@ -110,6 +124,30 @@ const thesisApi: ThesisApi = {
 
   getAcademicKeyStatus(): Promise<AcademicKeyStatus> {
     return ipcRenderer.invoke(IpcChannels.SETTINGS_GET_ACADEMIC_KEY_STATUS) as Promise<AcademicKeyStatus>;
+  },
+
+  listProjects(): Promise<ProjectListResult> {
+    return ipcRenderer.invoke(IpcChannels.PROJECT_LIST) as Promise<ProjectListResult>;
+  },
+
+  createProject(name?: string): Promise<ProjectCreateResult> {
+    const req: ProjectCreateRequest = { name };
+    return ipcRenderer.invoke(IpcChannels.PROJECT_CREATE, req) as Promise<ProjectCreateResult>;
+  },
+
+  renameProject(id: string, name: string): Promise<ProjectRenameResult> {
+    const req: ProjectRenameRequest = { id, name };
+    return ipcRenderer.invoke(IpcChannels.PROJECT_RENAME, req) as Promise<ProjectRenameResult>;
+  },
+
+  switchProject(id: string): Promise<ProjectSwitchResult> {
+    const req: ProjectSwitchRequest = { id };
+    return ipcRenderer.invoke(IpcChannels.PROJECT_SWITCH, req) as Promise<ProjectSwitchResult>;
+  },
+
+  archiveProject(id: string): Promise<ProjectArchiveResult> {
+    const req: ProjectArchiveRequest = { id };
+    return ipcRenderer.invoke(IpcChannels.PROJECT_ARCHIVE, req) as Promise<ProjectArchiveResult>;
   },
 };
 

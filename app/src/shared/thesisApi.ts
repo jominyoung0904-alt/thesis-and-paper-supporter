@@ -12,6 +12,11 @@ import type {
   IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
+  ProjectArchiveResult,
+  ProjectCreateResult,
+  ProjectListResult,
+  ProjectRenameResult,
+  ProjectSwitchResult,
   QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunResult,
@@ -39,4 +44,14 @@ export interface ThesisApi {
   saveAcademicKey(provider: IpcAcademicKeyProvider, key: string): Promise<SaveAcademicKeyResult>;
   /** Reports which academic-search providers currently have a key registered. */
   getAcademicKeyStatus(): Promise<AcademicKeyStatus>;
+  /** Lists non-archived projects plus the currently active project id (FR-PRJ-001/002). */
+  listProjects(): Promise<ProjectListResult>;
+  /** Creates a new project and switches to it immediately (FR-PRJ-001). */
+  createProject(name?: string): Promise<ProjectCreateResult>;
+  /** Renames an existing project (FR-PRJ-004). */
+  renameProject(id: string, name: string): Promise<ProjectRenameResult>;
+  /** Switches the active project, re-assembling every project-scoped service (FR-PRJ-002/006). */
+  switchProject(id: string): Promise<ProjectSwitchResult>;
+  /** Archives (soft-deletes) a project, hiding it from the switch list (FR-PRJ-005). */
+  archiveProject(id: string): Promise<ProjectArchiveResult>;
 }

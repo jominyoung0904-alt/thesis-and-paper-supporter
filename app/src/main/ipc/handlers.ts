@@ -10,20 +10,30 @@
  * settingsHandlers.ts / chatHandlers.ts / researchGateHandlers.ts /
  * academicKeyHandlers.ts to stay under the project's 300-line file limit as
  * new IPC domains are added this sprint (see plan.md "선행 리팩터링 메모").
- * This file now only assembles shared state (memory store, LLM service, the
- * lazily-built conversation manager) and wires each domain's
+ * This file now only assembles shared state (project context, LLM service,
+ * the lazily-built conversation manager) and wires each domain's
  * `register*Handlers` into the app.
+ *
+ * T41 (SPEC-TSA-002, FR-PRJ-002): the single fixed-path `MemoryStore` this
+ * file used to construct is now owned by `ProjectContext` (T39), which
+ * re-assembles it (and future project-scoped stores) on every project
+ * switch. Domain handlers that need "the current project's memory" receive a
+ * `getMemoryStore` accessor instead of a captured instance, so they always
+ * observe the currently active project.
  */
 
 import type { AppSettings } from '../config/defaultSettings';
 import type { KeyStore } from '../config/keyStore';
 import { ConversationManager } from '../../core/chat/conversation';
-import { MemoryStore } from '../../core/memory/store';
 import { serializeMemoryForPrompt } from '../../core/memory/serializer';
+import { ProjectIndexStore } from '../../core/project/projectStore';
+import { indexFilePath } from '../project/projectPaths';
 import type { ConversationManagerHolder } from './guards';
 import { registerAcademicKeyHandlers } from './academicKeyHandlers';
 import { registerChatHandlers } from './chatHandlers';
 import { createLlmService } from './llmService';
+import { ProjectContext } from './projectContext';
+import { registerProjectHandlers } from './projectHandlers';
 import { registerResearchGateHandlers } from './researchGateHandlers';
 import { registerSettingsHandlers } from './settingsHandlers';
 
@@ -32,19 +42,26 @@ export interface IpcHandlerDeps {
   settingsFile: string;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
-  /** Absolute path to the single (MVP) project's memory JSON file. */
-  memoryFilePath: string;
+  /** Root data directory — `ProjectContext` resolves every per-project path under `{dataDir}/projects/`. */
+  dataDir: string;
 }
 
 /** Registers every IPC handler this app exposes. Call once during bootstrap. */
-// @AX:ANCHOR: [AUTO] central IPC wiring — composition root registering every channel handler. Related: SPEC-TSA-001
+// @AX:ANCHOR: [AUTO] central IPC wiring — composition root registering every channel handler. Related: SPEC-TSA-001, SPEC-TSA-002
 export function registerIpcHandlers(deps: IpcHandlerDeps): void {
-  const { keyStore, settingsFile, getSettings, setSettings, memoryFilePath } = deps;
+  const { keyStore, settingsFile, getSettings, setSettings, dataDir } = deps;
 
   registerAcademicKeyHandlers({ keyStore, getSettings });
 
-  const memoryStore = new MemoryStore(memoryFilePath);
-  memoryStore.load();
+  const indexStore = new ProjectIndexStore(indexFilePath(dataDir));
+  const projectContext = new ProjectContext({
+    dataDir,
+    indexStore,
+    // Flush the outgoing project's pending writes while its services are
+    // still the live ones (research.md decision 1: rebuild-on-switch).
+    beforeSwitch: (outgoing) => outgoing.memoryStore.save(),
+  });
+  projectContext.initialize();
 
   const llmService = createLlmService(getSettings, keyStore);
 
@@ -52,7 +69,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
     return new ConversationManager({
       llm: llmService.getAdapter(),
       model: llmService.getModel(),
-      getMemory: () => serializeMemoryForPrompt(memoryStore.getSnapshot()),
+      getMemory: () => serializeMemoryForPrompt(projectContext.getServices().memoryStore.getSnapshot()),
     });
   }
 
@@ -68,7 +85,26 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
     },
   };
 
+  // FR-PRJ-002: a project switch must not leak the previous project's chat
+  // transcript into the newly active one — different projects are different
+  // research contexts by definition, so this rebuild ALWAYS restores an
+  // EMPTY history (unlike settingsHandlers.ts's provider-change rebuild,
+  // which intentionally carries the transcript over). Skipped when no
+  // manager was ever built yet (nothing to leak; the next `chat:send` lazily
+  // builds fresh against the now-active project) and thus never risks
+  // `buildConversationManager()`'s eager `llmService.getAdapter()` throwing
+  // before a key is registered.
+  projectContext.onSwitch(() => {
+    if (!conversation.get()) return;
+    const rebuilt = conversation.build();
+    rebuilt.restoreHistory([]);
+    conversation.set(rebuilt);
+  });
+
+  const getMemoryStore = () => projectContext.getServices().memoryStore;
+
   registerSettingsHandlers({ keyStore, settingsFile, getSettings, setSettings, llmService, conversation });
-  registerChatHandlers({ llmService, memoryStore, conversation });
-  registerResearchGateHandlers({ llmService, memoryStore, keyStore, getSettings });
+  registerChatHandlers({ llmService, getMemoryStore, conversation });
+  registerResearchGateHandlers({ llmService, getMemoryStore, keyStore, getSettings });
+  registerProjectHandlers({ indexStore, projectContext });
 }

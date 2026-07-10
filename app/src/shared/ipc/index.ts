@@ -18,3 +18,4 @@ export * from './llm';
 export * from './research';
 export * from './gate';
 export * from './academic';
+export * from './project';

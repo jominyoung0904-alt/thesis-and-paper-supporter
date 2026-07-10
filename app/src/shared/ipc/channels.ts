@@ -33,6 +33,16 @@ export const IpcChannels = {
   SETTINGS_SAVE_ACADEMIC_KEY: 'settings:save-academic-key',
   /** Reports which academic-search providers currently have a key registered. */
   SETTINGS_GET_ACADEMIC_KEY_STATUS: 'settings:get-academic-key-status',
+  /** Lists non-archived projects plus the currently active project id (FR-PRJ-001/002). */
+  PROJECT_LIST: 'project:list',
+  /** Creates a new project and switches to it immediately (FR-PRJ-001). */
+  PROJECT_CREATE: 'project:create',
+  /** Renames an existing project (FR-PRJ-004). */
+  PROJECT_RENAME: 'project:rename',
+  /** Switches the active project, re-assembling every project-scoped service (FR-PRJ-002/006). */
+  PROJECT_SWITCH: 'project:switch',
+  /** Archives (soft-deletes) a project, hiding it from the switch list (FR-PRJ-005). */
+  PROJECT_ARCHIVE: 'project:archive',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];

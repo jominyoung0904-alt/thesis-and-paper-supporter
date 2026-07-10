@@ -35,7 +35,12 @@ import { mapDeepResearchResult } from './researchMapper';
 
 export interface ResearchGateHandlerDeps {
   llmService: LlmService;
-  memoryStore: MemoryStore;
+  /**
+   * Returns the ACTIVE project's memory store. Re-invoked on every call
+   * (rather than captured once) so a project switch is reflected on the very
+   * next channel invocation — see `projectContext.ts` (T39/T41, FR-PRJ-002).
+   */
+  getMemoryStore: () => MemoryStore;
   keyStore: KeyStore;
   getSettings: () => AppSettings;
 }
@@ -52,7 +57,7 @@ const VALID_GATE_SECTIONS = Object.keys(GATE_DEFINITIONS);
 
 /** Registers `research:run` and `quality-gate:run`. */
 export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): void {
-  const { llmService, memoryStore, keyStore, getSettings } = deps;
+  const { llmService, getMemoryStore, keyStore, getSettings } = deps;
 
   ipcMain.handle(
     IpcChannels.RESEARCH_RUN,
@@ -69,7 +74,7 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
       try {
         const result = await runDeepResearch({
           question: payload.question,
-          memory: serializeMemoryForPrompt(memoryStore.getSnapshot()),
+          memory: serializeMemoryForPrompt(getMemoryStore().getSnapshot()),
           llm: llmService.getAdapter(),
           clients,
           model: llmService.getModel(),
@@ -101,7 +106,7 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
         return await runQualityGate(definition, payload.text, {
           llm: llmService.getAdapter(),
           model: llmService.getModel(),
-          memory: serializeMemoryForPrompt(memoryStore.getSnapshot()),
+          memory: serializeMemoryForPrompt(getMemoryStore().getSnapshot()),
         });
       } catch (err) {
         throw new Error(translateLlmError(err).message);

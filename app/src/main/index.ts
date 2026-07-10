@@ -8,6 +8,7 @@ import { fetchRemoteConfig, mergeRemoteIntoSettings } from './config/remoteConfi
 import { loadSettings, saveSettings } from './config/settingsLoader';
 import { registerIpcHandlers } from './ipc/handlers';
 import { ensureAppDirectories, resolveAppPaths } from './paths';
+import { migrateDefaultProject } from './project/migration';
 import { checkRunLocation } from './startup/pathCheck';
 import { showRunLocationErrorAndQuit } from './startup/pathCheckDialog';
 import { createMainWindow } from './window';
@@ -20,9 +21,15 @@ const REMOTE_CONFIG_TIMEOUT_MS = 5000;
  * Startup order matters:
  * 1. Run-location check (zip preview / temp folder) — quit early with guidance.
  * 2. Path resolution and directory creation (data/, config/).
- * 3. Settings load (self-healing) and key store construction.
- * 4. Window creation — never blocked by the remote config fetch.
- * 5. Remote config fetch in the background; failures notify but never block
+ * 3. Sprint 1 -> Sprint 2 default-project migration (FR-PRJ-003) — MUST run
+ *    before `registerIpcHandlers`, since `ProjectContext.initialize()`
+ *    (invoked inside it) assumes the project index already reflects any
+ *    absorbed Sprint 1 data. Synchronous local-FS work and NEVER throws (its
+ *    own "실패=결과값" contract, NFR-OPS-003) — logged only, never blocks
+ *    startup.
+ * 4. Settings load (self-healing) and key store construction.
+ * 5. Window creation — never blocked by the remote config fetch.
+ * 6. Remote config fetch in the background; failures notify but never block
  *    (NFR-CFG-004: alert, then continue on local defaults).
  */
 async function bootstrap(): Promise<void> {
@@ -49,6 +56,14 @@ async function bootstrap(): Promise<void> {
   });
   ensureAppDirectories(paths);
 
+  const migrationResult = migrateDefaultProject(paths.dataDir);
+  if (migrationResult.reason === 'error') {
+    console.error('[project] default-project migration failed:', migrationResult.userMessage);
+  } else if (migrationResult.migrated) {
+    const kind = migrationResult.fresh ? '새 설치' : 'Sprint 1 데이터 편입';
+    console.log(`[project] default-project migration complete (${kind}): ${migrationResult.project?.id}`);
+  }
+
   const settingsResult = loadSettings(paths.settingsFile);
   const keyStore = new KeyStore(join(paths.dataDir, 'keys.json'), createElectronCryptoBackend());
 
@@ -64,9 +79,7 @@ async function bootstrap(): Promise<void> {
     setSettings: (settings) => {
       currentSettings = settings;
     },
-    // MVP: a single project's memory lives at a fixed path (see MemoryStore's
-    // doc comment; multi-project support is out of scope for this sprint).
-    memoryFilePath: join(paths.dataDir, 'projects', 'default', 'memory.json'),
+    dataDir: paths.dataDir,
   });
 
   createMainWindow();

@@ -21,7 +21,12 @@ import type { LlmService } from './llmService';
 
 export interface ChatHandlerDeps {
   llmService: LlmService;
-  memoryStore: MemoryStore;
+  /**
+   * Returns the ACTIVE project's memory store. Re-invoked on every call
+   * (rather than captured once) so a project switch is reflected on the very
+   * next channel invocation — see `projectContext.ts` (T39/T41, FR-PRJ-002).
+   */
+  getMemoryStore: () => MemoryStore;
   conversation: ConversationManagerHolder;
 }
 
@@ -30,7 +35,7 @@ const MAX_DECISION_FIELD_LENGTH = 2_000;
 
 /** Registers `chat:send` and `memory:save-decision`. */
 export function registerChatHandlers(deps: ChatHandlerDeps): void {
-  const { llmService, memoryStore, conversation } = deps;
+  const { llmService, getMemoryStore, conversation } = deps;
 
   ipcMain.handle(IpcChannels.CHAT_SEND, async (_event, payload: ChatSendRequest): Promise<ChatSendResult> => {
     if (!isBoundedString(payload?.text, MAX_CHAT_TEXT_LENGTH)) {
@@ -63,6 +68,7 @@ export function registerChatHandlers(deps: ChatHandlerDeps): void {
     ) {
       throw new Error(INVALID_REQUEST_MESSAGE);
     }
+    const memoryStore = getMemoryStore();
     memoryStore.addDecision({ what: payload.what, why: payload.why, source: 'chat' });
     memoryStore.save();
   });
