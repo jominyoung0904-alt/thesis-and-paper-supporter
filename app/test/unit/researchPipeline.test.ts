@@ -218,6 +218,23 @@ describe('runDeepResearch', () => {
     expect(ssLog).toEqual(['engA', 'engB']);
   });
 
+  it('routes BOTH Korean and English terms to OpenAlex so international coverage survives a Semantic Scholar outage', async () => {
+    const { adapter } = makeLlm({
+      queryGen: () => JSON.stringify({ ko: ['국문A', '국문B'], en: ['engA', 'engB'] }),
+    });
+    const openAlexLog: string[] = [];
+    const clients = [
+      recordingClient('openalex', [paper({ source: 'openalex', title: '논문' })], openAlexLog),
+      // Semantic Scholar down (the common keyless rate-limit case).
+      failClient('semanticscholar', 'rate-limit'),
+    ];
+
+    const result = await run({ llm: adapter, clients });
+
+    expect(openAlexLog).toEqual(['국문A', '국문B', 'engA', 'engB']);
+    expect(result.failedSources).toEqual([{ source: 'semanticscholar', reason: 'rate-limit' }]);
+  });
+
   it('splits screening into multiple batches when there are more than 20 papers', async () => {
     const { adapter, calls } = makeLlm();
     const many = Array.from({ length: 25 }, (_, i) => paper({ title: `논문 ${i}` }));

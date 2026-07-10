@@ -225,13 +225,21 @@ async function searchOneClient(client: AcademicClient, queries: GeneratedQueries
 }
 
 /**
- * Semantic Scholar searches English terms; every other source (OpenAlex,
- * and — when a real key is registered — KCI/ScienceON) searches Korean
- * terms (SPEC-TSA-001 후속: OpenAlex는 키 없이 국내 학술지를 반환하므로 이제
- * 국문 검색어를 담당하는 기본 소스다).
+ * Semantic Scholar searches English terms; OpenAlex searches BOTH Korean and
+ * English terms; every other source (naverdoc, and — when a real key is
+ * registered — KCI/ScienceON) searches Korean terms.
+ *
+ * OpenAlex gets both buckets (field feedback 2026-07-11): it is the only
+ * keyless RELIABLE source, and Semantic Scholar's unauthenticated rate limit
+ * makes it fail often — when it did, international coverage silently dropped
+ * to zero and every result looked domestic. Routing the English terms to
+ * OpenAlex as well guarantees international papers regardless of Semantic
+ * Scholar's availability; title dedup absorbs any overlap.
  */
 function termsForSource(client: AcademicClient, queries: GeneratedQueries): string[] {
-  return client.source === 'semanticscholar' ? queries.en : queries.ko;
+  if (client.source === 'semanticscholar') return queries.en;
+  if (client.source === 'openalex') return [...queries.ko, ...queries.en];
+  return queries.ko;
 }
 
 /**
