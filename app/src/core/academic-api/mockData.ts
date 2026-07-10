@@ -5,10 +5,11 @@
  *
  * This module is a thin barrel: the actual fixture arrays live in
  * `mockDataDomestic.ts` (KCI/ScienceON), `mockDataIntl.ts` (Semantic
- * Scholar/OpenAlex), and `googleCseMockData.ts` (Google CSE, T32) — split out
- * to stay under the project's per-file line limit. Every client still
- * imports from this one module so callers never need to know about the
- * split.
+ * Scholar/OpenAlex), `googleCseMockData.ts` (Google CSE, T32 — retained for
+ * the client module but no longer assembled, see `academicClients.ts`), and
+ * `naverDocMockData.ts` (Naver 전문자료, T33) — split out to stay under the
+ * project's per-file line limit. Every client still imports from this one
+ * module so callers never need to know about the split.
  *
  * Field shapes mirror the real `PaperMetadata` contract exactly (authors as
  * an array, nullable abstract/venue/citationCount) so downstream code never
@@ -20,6 +21,7 @@ import type { PaperMetadata } from './types';
 export { GOOGLE_CSE_MOCK_PAPERS } from './googleCseMockData';
 export { KCI_MOCK_PAPERS, SCIENCEON_MOCK_PAPERS } from './mockDataDomestic';
 export { OPENALEX_MOCK_PAPERS, SEMANTIC_SCHOLAR_MOCK_PAPERS } from './mockDataIntl';
+export { NAVER_DOC_MOCK_PAPERS } from './naverDocMockData';
 
 /**
  * Filters a mock fixture set by naive substring matching against the title

@@ -79,9 +79,30 @@
   font-size: 15px;
 }
 
+.settings-card-steps {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+.settings-card-steps summary {
+  cursor: pointer;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.settings-card-steps ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
 .settings-card-field {
   display: flex;
   gap: 8px;
+}
+
+.settings-card-field-dual {
+  flex-wrap: wrap;
 }
 
 .settings-card-input {

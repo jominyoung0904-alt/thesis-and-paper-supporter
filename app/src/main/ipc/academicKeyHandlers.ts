@@ -11,11 +11,12 @@
 import { ipcMain } from 'electron';
 
 import type { AppSettings } from '../config/defaultSettings';
+import { parseNaverCredential } from '../config/keyStore';
 import type { KeyStore } from '../config/keyStore';
-import { GoogleCseClient } from '../../core/academic-api/googleCseClient';
+import { NaverDocClient } from '../../core/academic-api/naverDocClient';
 import { IpcChannels } from '../../shared/ipc-channels';
 import type { AcademicKeyStatus, SaveAcademicKeyRequest, SaveAcademicKeyResult } from '../../shared/ipc-channels';
-import { isBoundedAcademicKey, isGoogleCseMissingCx, isValidAcademicKeyProvider } from './academicKeyGuards';
+import { isBoundedAcademicKey, isValidAcademicKeyProvider, isValidNaverCredentialFormat } from './academicKeyGuards';
 
 export interface AcademicKeyHandlerDeps {
   keyStore: KeyStore;
@@ -25,7 +26,7 @@ export interface AcademicKeyHandlerDeps {
 const INVALID_REQUEST_MESSAGE = '잘못된 요청이에요. 앱을 다시 시작한 뒤 시도해 주세요.';
 
 /**
- * Shown alongside a *successful* kci/scienceon save: unlike Google CSE, these
+ * Shown alongside a *successful* kci/scienceon save: unlike naverdoc, these
  * two are never verified against a live call here (research.md documents
  * both as IP/MAC allow-list restricted at issuance — a successful save from
  * this machine does not guarantee the key will actually work at request
@@ -34,11 +35,8 @@ const INVALID_REQUEST_MESSAGE = '잘못된 요청이에요. 앱을 다시 시작
  */
 const IP_MAC_RESTRICTION_NOTICE = '이 키는 발급 시 등록한 컴퓨터/네트워크에서만 동작할 수 있어요.';
 
-const GOOGLE_CSE_NO_CX_MESSAGE =
-  '구글 학위논문 검색은 이 버전에 검색 엔진 설정(cx)이 아직 포함되지 않았어요. 업데이트를 기다려 주세요.';
-
-const GOOGLE_CSE_VERIFY_FAILURE_MESSAGE =
-  '입력하신 키로 구글 학위논문 검색 연결을 확인하지 못했어요. 키를 다시 확인해 주세요.';
+/** Shown for both a malformed Client ID/Secret pair and a failed live verification call. */
+const NAVER_CREDENTIAL_FAILURE_MESSAGE = 'Client ID와 Secret을 다시 확인해 주세요.';
 
 /** Registers `settings:save-academic-key` and `settings:get-academic-key-status`. */
 export function registerAcademicKeyHandlers(deps: AcademicKeyHandlerDeps): void {
@@ -54,8 +52,8 @@ export function registerAcademicKeyHandlers(deps: AcademicKeyHandlerDeps): void 
         return { ok: false, message: INVALID_REQUEST_MESSAGE };
       }
 
-      if (provider === 'googlecse') {
-        return saveGoogleCseKey(keyStore, getSettings(), key);
+      if (provider === 'naverdoc') {
+        return saveNaverDocKey(keyStore, getSettings(), key);
       }
 
       // kci/scienceon: saved without a live connectivity check (see
@@ -73,35 +71,36 @@ export function registerAcademicKeyHandlers(deps: AcademicKeyHandlerDeps): void 
     return {
       kci: stored.includes('kci'),
       scienceon: stored.includes('scienceon'),
-      googlecse: stored.includes('googlecse'),
+      naverdoc: stored.includes('naverdoc'),
     };
   });
 }
 
 /**
- * Google CSE is the one provider verified against a live call before saving
- * (a single `q=test` search) — its key/cx pairing is cheap to check
- * up-front and the 100/day free quota makes a silent bad-key failure
- * annoying to discover later during an actual research run.
+ * naverdoc is the one provider verified against a live call before saving (a
+ * single `query=test` search) — its Client ID/Secret pairing is cheap to
+ * check up-front and the 25,000/day free quota makes a silent bad-credential
+ * failure annoying to discover later during an actual research run.
  */
-async function saveGoogleCseKey(keyStore: KeyStore, settings: AppSettings, key: string): Promise<SaveAcademicKeyResult> {
-  const cx = settings.academicSearch.googleCseCx;
-  if (isGoogleCseMissingCx('googlecse', cx)) {
-    return { ok: false, message: GOOGLE_CSE_NO_CX_MESSAGE };
+async function saveNaverDocKey(keyStore: KeyStore, settings: AppSettings, key: string): Promise<SaveAcademicKeyResult> {
+  if (!isValidNaverCredentialFormat(key)) {
+    return { ok: false, message: NAVER_CREDENTIAL_FAILURE_MESSAGE };
   }
 
-  const client = new GoogleCseClient({
-    baseUrl: settings.endpoints.googleCse,
-    apiKey: key,
-    cx: cx.trim(),
+  // Guaranteed non-null: isValidNaverCredentialFormat just confirmed it parses.
+  const credential = parseNaverCredential(key)!;
+  const client = new NaverDocClient({
+    baseUrl: settings.endpoints.naver,
+    clientId: credential.clientId,
+    clientSecret: credential.clientSecret,
     mockMode: false,
   });
   const verifyResult = await client.search('test', { limit: 1 });
   if (!verifyResult.ok) {
-    return { ok: false, message: GOOGLE_CSE_VERIFY_FAILURE_MESSAGE };
+    return { ok: false, message: NAVER_CREDENTIAL_FAILURE_MESSAGE };
   }
 
-  const saveResult = keyStore.saveKey('googlecse', key);
+  const saveResult = keyStore.saveKey('naverdoc', key);
   if (!saveResult.ok) {
     return { ok: false, message: saveResult.userMessage };
   }

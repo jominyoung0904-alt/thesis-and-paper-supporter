@@ -80,13 +80,20 @@ export interface DeepResearchResult {
   usage: UsageTotals;
 }
 
-/** Human-readable Korean labels for each academic source, used in references. */
+/**
+ * Human-readable Korean labels for each academic source, used in references.
+ * `googlecse` is kept for backward compatibility with reports/papers already
+ * saved from before SPEC-TSA-001 후속 T33 (Google CSE closed to new
+ * customers and replaced by `naverdoc`) — it is no longer assembled into a
+ * real client, see `academicClients.ts`.
+ */
 export const SOURCE_LABELS: Record<AcademicSource, string> = {
   kci: 'KCI',
   scienceon: 'ScienceON',
   semanticscholar: 'Semantic Scholar',
   openalex: '국내외 통합(OpenAlex)',
   googlecse: '학위논문(RISS·구글 검색)',
+  naverdoc: '학위논문·보고서(네이버 전문정보)',
 };
 
 /** Korean labels for search-failure reasons, used in the transparency paragraph. */

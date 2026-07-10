@@ -11,7 +11,13 @@ import { useEffect, useState } from 'react';
 
 import type { AcademicKeyStatus, IpcAcademicKeyProvider } from '../../shared/ipc-channels';
 import type { AcademicKeyCardState } from './settingsScreenLogic';
-import { ACADEMIC_KEY_CARDS, canSaveAcademicKey, createInitialCardState } from './settingsScreenLogic';
+import {
+  ACADEMIC_KEY_CARDS,
+  canSaveAcademicKey,
+  canSaveDualFieldKey,
+  combineNaverCredential,
+  createInitialCardState,
+} from './settingsScreenLogic';
 import './settingsScreen.css';
 
 export interface SettingsScreenCallbacks {
@@ -30,7 +36,7 @@ function createInitialCardStates(): CardStates {
   return {
     kci: createInitialCardState(),
     scienceon: createInitialCardState(),
-    googlecse: createInitialCardState(),
+    naverdoc: createInitialCardState(),
   };
 }
 
@@ -57,19 +63,30 @@ export function SettingsScreen({ callbacks }: SettingsScreenProps): JSX.Element 
     setCardStates((current) => ({ ...current, [provider]: { ...current[provider], ...patch } }));
   }
 
+  /** Resolves the exact key string to save for `provider` — dual-field cards join Client ID + Secret with a colon. */
+  function resolveKeyToSave(provider: IpcAcademicKeyProvider, card: AcademicKeyCardState): string {
+    const isDualField = ACADEMIC_KEY_CARDS.find((c) => c.provider === provider)?.dualField !== undefined;
+    return isDualField ? combineNaverCredential(card.input, card.secondInput) : card.input.trim();
+  }
+
   async function handleSave(provider: IpcAcademicKeyProvider): Promise<void> {
     const card = cardStates[provider];
-    if (!canSaveAcademicKey(card.input, card.saving)) {
+    const isDualField = ACADEMIC_KEY_CARDS.find((c) => c.provider === provider)?.dualField !== undefined;
+    const canSave = isDualField
+      ? canSaveDualFieldKey(card.input, card.secondInput, card.saving)
+      : canSaveAcademicKey(card.input, card.saving);
+    if (!canSave) {
       return;
     }
 
     updateCard(provider, { saving: true, message: null, messageKind: null });
     try {
-      const result = await callbacks.saveAcademicKey(provider, card.input.trim());
+      const result = await callbacks.saveAcademicKey(provider, resolveKeyToSave(provider, card));
       if (result.ok) {
         updateCard(provider, {
           saving: false,
           input: '',
+          secondInput: '',
           message: result.message ?? '저장했어요.',
           messageKind: 'success',
         });
@@ -124,29 +141,77 @@ export function SettingsScreen({ callbacks }: SettingsScreenProps): JSX.Element 
                 </button>
               )}
 
-              <div className="settings-card-field">
-                <input
-                  type="password"
-                  value={cardState.input}
-                  onChange={(event) =>
-                    updateCard(card.provider, { input: event.target.value, message: null, messageKind: null })
-                  }
-                  placeholder="여기에 키를 붙여넣어 주세요"
-                  className="settings-card-input"
-                  aria-label={`${card.title} API 키`}
-                  disabled={cardState.saving}
-                />
-                <button
-                  type="button"
-                  className="settings-card-save-btn"
-                  disabled={!canSaveAcademicKey(cardState.input, cardState.saving)}
-                  onClick={() => {
-                    void handleSave(card.provider);
-                  }}
-                >
-                  {cardState.saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
+              {card.steps && card.steps.length > 0 && (
+                <details className="settings-card-steps">
+                  <summary>발급 방법 보기</summary>
+                  <ol>
+                    {card.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                </details>
+              )}
+
+              {card.dualField ? (
+                <div className="settings-card-field settings-card-field-dual">
+                  <input
+                    type="text"
+                    value={cardState.input}
+                    onChange={(event) =>
+                      updateCard(card.provider, { input: event.target.value, message: null, messageKind: null })
+                    }
+                    placeholder={card.dualField.primaryPlaceholder}
+                    className="settings-card-input"
+                    aria-label={`${card.title} ${card.dualField.primaryLabel}`}
+                    disabled={cardState.saving}
+                  />
+                  <input
+                    type="password"
+                    value={cardState.secondInput}
+                    onChange={(event) =>
+                      updateCard(card.provider, { secondInput: event.target.value, message: null, messageKind: null })
+                    }
+                    placeholder={card.dualField.secondaryPlaceholder}
+                    className="settings-card-input"
+                    aria-label={`${card.title} ${card.dualField.secondaryLabel}`}
+                    disabled={cardState.saving}
+                  />
+                  <button
+                    type="button"
+                    className="settings-card-save-btn"
+                    disabled={!canSaveDualFieldKey(cardState.input, cardState.secondInput, cardState.saving)}
+                    onClick={() => {
+                      void handleSave(card.provider);
+                    }}
+                  >
+                    {cardState.saving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              ) : (
+                <div className="settings-card-field">
+                  <input
+                    type="password"
+                    value={cardState.input}
+                    onChange={(event) =>
+                      updateCard(card.provider, { input: event.target.value, message: null, messageKind: null })
+                    }
+                    placeholder="여기에 키를 붙여넣어 주세요"
+                    className="settings-card-input"
+                    aria-label={`${card.title} API 키`}
+                    disabled={cardState.saving}
+                  />
+                  <button
+                    type="button"
+                    className="settings-card-save-btn"
+                    disabled={!canSaveAcademicKey(cardState.input, cardState.saving)}
+                    onClick={() => {
+                      void handleSave(card.provider);
+                    }}
+                  >
+                    {cardState.saving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              )}
 
               {cardState.message && (
                 <p

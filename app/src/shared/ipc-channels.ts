@@ -30,7 +30,7 @@ export const IpcChannels = {
   MEMORY_SAVE_DECISION: 'memory:save-decision',
   /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */
   QUALITY_GATE_RUN: 'quality-gate:run',
-  /** Saves a personal academic-search API key (kci/scienceon/googlecse) (NFR-ACAPI-002). */
+  /** Saves a personal academic-search API key (kci/scienceon/naverdoc) (NFR-ACAPI-002). */
   SETTINGS_SAVE_ACADEMIC_KEY: 'settings:save-academic-key',
   /** Reports which academic-search providers currently have a key registered. */
   SETTINGS_GET_ACADEMIC_KEY_STATUS: 'settings:get-academic-key-status',
@@ -154,10 +154,11 @@ export interface QualityGateRunResult {
 // --- settings:save-academic-key / settings:get-academic-key-status ---
 
 /** Academic-search API key providers manageable from the Settings tab (NFR-ACAPI-002). */
-export type IpcAcademicKeyProvider = 'kci' | 'scienceon' | 'googlecse';
+export type IpcAcademicKeyProvider = 'kci' | 'scienceon' | 'naverdoc';
 
 export interface SaveAcademicKeyRequest {
   provider: IpcAcademicKeyProvider;
+  /** For `naverdoc`, this is the colon-joined `${clientId}:${clientSecret}` pair. */
   key: string;
 }
 
@@ -167,6 +168,7 @@ export interface SaveAcademicKeyResult {
    * Korean-language message. Required on failure. Also set on a *successful*
    * kci/scienceon save, as a usage caveat — those keys are only verified
    * against the IP/MAC allow-listed at issuance, never against a live call.
+   * naverdoc, by contrast, is verified with a live call before saving.
    */
   message?: string;
 }
@@ -174,5 +176,5 @@ export interface SaveAcademicKeyResult {
 export interface AcademicKeyStatus {
   kci: boolean;
   scienceon: boolean;
-  googlecse: boolean;
+  naverdoc: boolean;
 }

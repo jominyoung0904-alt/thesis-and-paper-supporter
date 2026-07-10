@@ -28,8 +28,15 @@ export interface EndpointsConfig {
   semanticScholar: string;
   /** OpenAlex API base URL — keyless, no IP/MAC restriction (SPEC-TSA-001 후속). */
   openalex: string;
-  /** Google Custom Search JSON API base URL (T32, NFR-ACAPI-002 조기 구현). */
+  /**
+   * Google Custom Search JSON API base URL (T32, NFR-ACAPI-002 조기 구현).
+   * Retained for the client module and existing settings files, but no
+   * longer assembled into a real client (SPEC-TSA-001 후속 T33: Google
+   * closed this API to new customers) — see `academicClients.ts`.
+   */
   googleCse: string;
+  /** Naver Search Open API base URL (SPEC-TSA-001 후속 T33, 전문자료(doc) 검색). */
+  naver: string;
 }
 
 /** Academic-search configuration not tied to a single provider's base URL. */
@@ -89,6 +96,7 @@ const DEFAULT_SETTINGS_TEMPLATE: AppSettings = {
     semanticScholar: 'https://api.semanticscholar.org',
     openalex: 'https://api.openalex.org',
     googleCse: 'https://www.googleapis.com',
+    naver: 'https://openapi.naver.com',
   },
   // Live remote-config file (GitHub Pages, provisioned 2026-07-11). Editing
   // that file updates endpoint overrides / notices for every install without

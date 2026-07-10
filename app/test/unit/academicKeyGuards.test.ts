@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isBoundedAcademicKey,
-  isGoogleCseMissingCx,
   isValidAcademicKeyProvider,
+  isValidNaverCredentialFormat,
   MAX_ACADEMIC_KEY_LENGTH,
 } from '../../src/main/ipc/academicKeyGuards';
 
 describe('isValidAcademicKeyProvider', () => {
-  it('accepts kci/scienceon/googlecse', () => {
+  it('accepts kci/scienceon/naverdoc', () => {
     expect(isValidAcademicKeyProvider('kci')).toBe(true);
     expect(isValidAcademicKeyProvider('scienceon')).toBe(true);
-    expect(isValidAcademicKeyProvider('googlecse')).toBe(true);
+    expect(isValidAcademicKeyProvider('naverdoc')).toBe(true);
+  });
+
+  it('rejects the retired googlecse provider', () => {
+    expect(isValidAcademicKeyProvider('googlecse')).toBe(false);
   });
 
   it('rejects an LLM provider or an arbitrary string', () => {
@@ -50,18 +54,18 @@ describe('isBoundedAcademicKey', () => {
   });
 });
 
-describe('isGoogleCseMissingCx', () => {
-  it('is true for googlecse when cx is empty or whitespace-only', () => {
-    expect(isGoogleCseMissingCx('googlecse', '')).toBe(true);
-    expect(isGoogleCseMissingCx('googlecse', '   ')).toBe(true);
+describe('isValidNaverCredentialFormat', () => {
+  it('is true for a well-formed `clientId:clientSecret` pair', () => {
+    expect(isValidNaverCredentialFormat('my-client-id:my-client-secret')).toBe(true);
   });
 
-  it('is false for googlecse when cx is present', () => {
-    expect(isGoogleCseMissingCx('googlecse', 'abc123:cx-id')).toBe(false);
+  it('is false when there is no colon separator', () => {
+    expect(isValidNaverCredentialFormat('no-colon-here')).toBe(false);
   });
 
-  it('is always false for non-googlecse providers, regardless of cx', () => {
-    expect(isGoogleCseMissingCx('kci', '')).toBe(false);
-    expect(isGoogleCseMissingCx('scienceon', '')).toBe(false);
+  it('is false when either side is empty or whitespace-only', () => {
+    expect(isValidNaverCredentialFormat(':my-secret')).toBe(false);
+    expect(isValidNaverCredentialFormat('my-id:')).toBe(false);
+    expect(isValidNaverCredentialFormat('   :   ')).toBe(false);
   });
 });

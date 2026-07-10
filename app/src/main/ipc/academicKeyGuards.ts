@@ -11,7 +11,9 @@
  * re-validated here at runtime.
  */
 
-export const VALID_ACADEMIC_KEY_PROVIDERS = ['kci', 'scienceon', 'googlecse'] as const;
+import { parseNaverCredential } from '../config/keyStore';
+
+export const VALID_ACADEMIC_KEY_PROVIDERS = ['kci', 'scienceon', 'naverdoc'] as const;
 
 export type AcademicKeyProviderGuard = (typeof VALID_ACADEMIC_KEY_PROVIDERS)[number];
 
@@ -28,11 +30,12 @@ export function isBoundedAcademicKey(value: unknown): value is string {
 }
 
 /**
- * Google CSE has no bundled `cx` yet in most builds — this is `true` when the
- * caller is trying to register a googlecse key but the build/settings has no
- * usable search-engine id to pair it with (see `defaultSettings.ts`'s
- * `academicSearch.googleCseCx`).
+ * Whether `value` is a well-formed naverdoc credential: a
+ * `${clientId}:${clientSecret}` string with a colon separator and a
+ * non-empty, non-whitespace-only value on each side (SPEC-TSA-001 후속 T33).
+ * Delegates to `keyStore.ts`'s `parseNaverCredential` so both modules agree
+ * on exactly one definition of "well-formed".
  */
-export function isGoogleCseMissingCx(provider: string, googleCseCx: string): boolean {
-  return provider === 'googlecse' && googleCseCx.trim().length === 0;
+export function isValidNaverCredentialFormat(value: string): boolean {
+  return parseNaverCredential(value) !== null;
 }

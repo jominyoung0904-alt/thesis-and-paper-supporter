@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { CryptoBackend } from '../../src/main/config/keyStore';
-import { KeyStore } from '../../src/main/config/keyStore';
+import { KeyStore, parseNaverCredential } from '../../src/main/config/keyStore';
 
 /**
  * Deterministic, reversible mock of the platform encryption backend so the
@@ -167,5 +167,41 @@ describe('KeyStore', () => {
     const parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as { version: number; keys: Record<string, string> };
     expect(parsed.version).toBe(1);
     expect(typeof parsed.keys.claude).toBe('string');
+  });
+
+  it('stores and reads back a naverdoc credential pair as a single colon-joined string', () => {
+    store.saveKey('naverdoc', 'my-client-id:my-client-secret');
+
+    expect(store.readKey('naverdoc')).toEqual({ ok: true, key: 'my-client-id:my-client-secret' });
+  });
+});
+
+describe('parseNaverCredential', () => {
+  it('splits a well-formed `clientId:clientSecret` string', () => {
+    expect(parseNaverCredential('abc123:xyz789')).toEqual({ clientId: 'abc123', clientSecret: 'xyz789' });
+  });
+
+  it('trims whitespace around each side', () => {
+    expect(parseNaverCredential('  abc123  :  xyz789  ')).toEqual({ clientId: 'abc123', clientSecret: 'xyz789' });
+  });
+
+  it('returns null when there is no colon separator', () => {
+    expect(parseNaverCredential('no-colon-here')).toBeNull();
+  });
+
+  it('returns null when the client id side is empty', () => {
+    expect(parseNaverCredential(':xyz789')).toBeNull();
+  });
+
+  it('returns null when the client secret side is empty', () => {
+    expect(parseNaverCredential('abc123:')).toBeNull();
+  });
+
+  it('returns null when the client secret side is whitespace-only', () => {
+    expect(parseNaverCredential('abc123:   ')).toBeNull();
+  });
+
+  it('uses only the first colon as the separator, allowing a colon inside the secret', () => {
+    expect(parseNaverCredential('abc123:xyz:789')).toEqual({ clientId: 'abc123', clientSecret: 'xyz:789' });
   });
 });

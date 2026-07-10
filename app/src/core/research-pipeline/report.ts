@@ -8,9 +8,16 @@
  * model emits that is out of range is stripped from the body before the
  * deterministic reference list and the fixed access-guidance / failed-source
  * paragraphs are appended.
+ *
+ * RISS deep-link fallback (SPEC-TSA-001 후속 T33): when the `naverdoc`
+ * source (theses/dissertations/reports) did not participate in this run's
+ * client list at all (no key registered), a one-line RISS search deep link
+ * is appended so the user can still manually look up domestic theses —
+ * see `buildRissDeepLinkParagraph`.
  */
 
 import type { LlmAdapter } from '../llm';
+import type { AcademicSource } from '../academic-api/types';
 import type { SerializedMemory } from '../memory/serializer';
 import { buildSystemPrompt } from '../memory/serializer';
 import type { FailedSource, PaperMetadata, ScreenedPaper, UsageTotals } from './types';
@@ -22,6 +29,9 @@ export const ACCESS_GUIDANCE =
 
 const NO_PAPERS_MESSAGE =
   '이번 조회에서는 연구 질문과 관련된 문헌을 찾지 못했습니다. 검색어를 바꾸어 다시 시도해 보세요.';
+
+/** RISS's plain search-result deep link; only the free-text `query` param is filled in. */
+const RISS_SEARCH_BASE_URL = 'https://www.riss.kr/search/Search.do?queryText=&query=';
 
 const TASK_INSTRUCTION =
   '아래 번호가 매겨진 논문 목록만을 근거로 사용자의 연구 질문에 대한 선행연구 종합 리포트를 한국어로 작성하라. ' +
@@ -41,11 +51,14 @@ export async function assembleReport(
   llm: LlmAdapter,
   model: string,
   usage: UsageTotals,
+  participatingSources: AcademicSource[],
+  firstKoQuery: string,
 ): Promise<string> {
   const cited = selectCitedPapers(screened);
+  const rissParagraph = buildRissDeepLinkParagraph(participatingSources, firstKoQuery);
 
   if (cited.length === 0) {
-    return [NO_PAPERS_MESSAGE, ACCESS_GUIDANCE, buildFailedSourcesParagraph(failedSources)]
+    return [NO_PAPERS_MESSAGE, ACCESS_GUIDANCE, buildFailedSourcesParagraph(failedSources), rissParagraph]
       .filter((section) => section.length > 0)
       .join('\n\n');
   }
@@ -59,9 +72,26 @@ export async function assembleReport(
   const references = buildReferences(cited);
   const failedParagraph = buildFailedSourcesParagraph(failedSources);
 
-  return [body, references, ACCESS_GUIDANCE, failedParagraph]
+  return [body, references, ACCESS_GUIDANCE, failedParagraph, rissParagraph]
     .filter((section) => section.length > 0)
     .join('\n\n');
+}
+
+/**
+ * Builds the RISS deep-link fallback paragraph, or `''` when it should not
+ * be shown. Only shown when `naverdoc` (theses/dissertations/reports) did
+ * not participate in this run at all — an empty *result set* from naverdoc
+ * is not the same thing (that just means it searched and found nothing), so
+ * this checks source participation, not result count.
+ */
+function buildRissDeepLinkParagraph(participatingSources: AcademicSource[], firstKoQuery: string): string {
+  if (participatingSources.includes('naverdoc')) return '';
+
+  const trimmedQuery = firstKoQuery.trim();
+  if (trimmedQuery.length === 0) return '';
+
+  const link = `${RISS_SEARCH_BASE_URL}${encodeURIComponent(trimmedQuery)}`;
+  return `학위논문은 RISS에서 직접 검색해 보실 수 있어요: ${link}`;
 }
 
 /** Keeps high/medium papers, high first, preserving relative order within each tier. */

@@ -16,19 +16,28 @@
  * with OpenAlex already covering domestic search, showing the user mock
  * data for KCI/ScienceON no longer serves any purpose.
  *
- * Google CSE (T32, NFR-ACAPI-002 조기 구현) covers RISS theses/dissertations,
- * which OpenAlex does not index. It has no bundled-key fallback: it is
- * included only when BOTH a user-registered key AND a non-empty `cx`
- * (search-engine id) are available. `cx` is not a per-user secret, but it is
- * still a required build/remote-config input — see `defaultSettings.ts`.
+ * Google CSE (T32, NFR-ACAPI-002 조기 구현) covered RISS theses/dissertations,
+ * which OpenAlex does not index, but Google Custom Search JSON API has since
+ * been confirmed closed to new customers (403 for a freshly-registered key,
+ * 2027 shutdown announced — see research.md "네이버 전문자료 전환 결정",
+ * SPEC-TSA-001 후속 T33). It is therefore deliberately never assembled here
+ * anymore, even if a user somehow still has a googlecse key registered from
+ * before this change — `GoogleCseClient` itself is left in place (unused)
+ * only so any lingering saved key/tests are not orphaned.
+ *
+ * Naver 전문자료(doc) search (T33) replaces it: it covers the same domestic
+ * theses/dissertations/reports ground, requires a Client ID *and* a Client
+ * Secret (see `keyStore.ts`'s `parseNaverCredential`), and is included only
+ * when a stored credential parses successfully.
  */
 
 import type { AppSettings } from '../config/defaultSettings';
 import type { KeyReadResult, KeyStore } from '../config/keyStore';
+import { parseNaverCredential } from '../config/keyStore';
 import { BUNDLED_ACADEMIC_KEYS } from '../config/bundledKeys';
 import type { AcademicClient } from '../../core/academic-api/types';
-import { GoogleCseClient } from '../../core/academic-api/googleCseClient';
 import { KciClient } from '../../core/academic-api/kciClient';
+import { NaverDocClient } from '../../core/academic-api/naverDocClient';
 import { OpenAlexClient } from '../../core/academic-api/openAlexClient';
 import { ScienceOnClient } from '../../core/academic-api/scienceOnClient';
 import { SemanticScholarClient } from '../../core/academic-api/semanticScholarClient';
@@ -94,16 +103,16 @@ export function buildAcademicClients(settings: AppSettings, keyStore: KeyStore):
     );
   }
 
-  // Google CSE has no bundled-key fallback (see module doc): both a
-  // user-registered key and a non-empty cx must be present.
-  const googleCseKeyResult = keyStore.readKey('googlecse');
-  const googleCseCx = settings.academicSearch.googleCseCx.trim();
-  if (googleCseKeyResult.ok && googleCseCx.length > 0) {
+  // Naver 전문자료(doc) search has no bundled-key fallback (see module doc):
+  // a user-registered Client ID/Secret pair must parse successfully.
+  const naverKeyResult = keyStore.readKey('naverdoc');
+  const naverCredential = naverKeyResult.ok ? parseNaverCredential(naverKeyResult.key) : null;
+  if (naverCredential !== null) {
     clients.push(
-      new GoogleCseClient({
-        baseUrl: settings.endpoints.googleCse,
-        apiKey: googleCseKeyResult.key,
-        cx: googleCseCx,
+      new NaverDocClient({
+        baseUrl: settings.endpoints.naver,
+        clientId: naverCredential.clientId,
+        clientSecret: naverCredential.clientSecret,
         mockMode: false,
       }),
     );

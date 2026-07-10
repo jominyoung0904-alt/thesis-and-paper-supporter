@@ -62,6 +62,7 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
   // @AX:NOTE: [AUTO] report assembly is deterministic — bibliography is built from PaperMetadata only, never LLM-authored. Related: FR-RES-005
   // (e) Deterministic report assembly.
   emit('report');
+  const participatingSources = input.clients.map((client) => client.source);
   const report = await assembleReport(
     input.question,
     screened,
@@ -70,6 +71,8 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     input.llm,
     input.model,
     usage,
+    participatingSources,
+    queries.ko[0] ?? input.question,
   );
 
   return { report, papers: screened, queries, failedSources, usage };

@@ -127,6 +127,7 @@ const ALLOWED_ENDPOINT_HOST_SUFFIXES: Record<keyof EndpointsConfig, string[]> = 
   semanticScholar: ['semanticscholar.org'],
   openalex: ['openalex.org'],
   googleCse: ['googleapis.com'],
+  naver: ['naver.com'],
 };
 
 function isAllowedEndpointOverride(key: keyof EndpointsConfig, value: unknown): value is string {

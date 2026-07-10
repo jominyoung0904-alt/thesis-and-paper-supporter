@@ -35,10 +35,12 @@ describe('resolveAcademicKey (NFR-ACAPI-001 key priority)', () => {
   });
 });
 
+type StubProvider = 'kci' | 'scienceon' | 'naverdoc';
+
 /** Minimal `KeyStore`-shaped stub — `buildAcademicClients` only ever calls `readKey`. */
-function fakeKeyStore(results: Partial<Record<'kci' | 'scienceon' | 'googlecse', KeyReadResult>>): KeyStore {
+function fakeKeyStore(results: Partial<Record<StubProvider, KeyReadResult>>): KeyStore {
   return {
-    readKey: (provider: 'kci' | 'scienceon' | 'googlecse') => results[provider] ?? { ok: false, reason: 'not-found' },
+    readKey: (provider: StubProvider) => results[provider] ?? { ok: false, reason: 'not-found' },
   } as unknown as KeyStore;
 }
 
@@ -80,44 +82,34 @@ describe('buildAcademicClients (SPEC-TSA-001 후속: OpenAlex 전환 우선순�
     expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'kci', 'scienceon']);
   });
 
-  it('includes googlecse with the bundled default cx when a user key is registered', () => {
-    // The default settings now ship a real riss.kr search-engine id
-    // (2026-07-11), so a user key alone is enough to activate the source.
+  it('includes naverdoc when a well-formed clientId:clientSecret credential is registered', () => {
     const settings = createDefaultSettings();
-    const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
+    const clients = buildAcademicClients(
+      settings,
+      fakeKeyStore({ naverdoc: { ok: true, key: 'my-client-id:my-client-secret' } }),
+    );
 
-    expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'googlecse']);
+    expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'naverdoc']);
   });
 
-  it('omits googlecse when cx is explicitly cleared even if a user key exists', () => {
+  it('omits naverdoc when the stored credential has no colon separator (malformed)', () => {
     const settings = createDefaultSettings();
-    settings.academicSearch.googleCseCx = '';
-    const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
+    const clients = buildAcademicClients(settings, fakeKeyStore({ naverdoc: { ok: true, key: 'no-colon-here' } }));
 
     expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar']);
   });
 
-  it('omits googlecse when cx is configured but no user key is registered', () => {
+  it('omits naverdoc when no credential is registered', () => {
     const settings = createDefaultSettings();
-    settings.academicSearch.googleCseCx = 'configured-cx-id';
     const clients = buildAcademicClients(settings, fakeKeyStore({}));
 
     expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar']);
   });
 
-  it('includes googlecse only when both a user key AND a non-empty cx are present', () => {
+  it('never assembles a googlecse client, even though the client module is retained', () => {
     const settings = createDefaultSettings();
-    settings.academicSearch.googleCseCx = 'configured-cx-id';
-    const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
+    const clients = buildAcademicClients(settings, fakeKeyStore({}));
 
-    expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'googlecse']);
-  });
-
-  it('treats a whitespace-only cx as absent', () => {
-    const settings = createDefaultSettings();
-    settings.academicSearch.googleCseCx = '   ';
-    const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
-
-    expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar']);
+    expect(clients.map((client) => client.source)).not.toContain('googlecse');
   });
 });

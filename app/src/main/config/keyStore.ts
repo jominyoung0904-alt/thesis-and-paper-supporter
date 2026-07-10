@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
  * NFR-LLM-002: keys are never sent anywhere except the provider's own API and
  * are never stored in plain text on disk.
  */
-export type KeyProvider = 'claude' | 'gemini' | 'openai' | 'kci' | 'scienceon' | 'googlecse';
+export type KeyProvider = 'claude' | 'gemini' | 'openai' | 'kci' | 'scienceon' | 'googlecse' | 'naverdoc';
 
 /**
  * Abstraction over the platform encryption primitive so {@link KeyStore}'s
@@ -202,6 +202,37 @@ export class KeyStore {
     }
     return Object.keys(loaded.store.keys) as KeyProvider[];
   }
+}
+
+/** A parsed naverdoc credential pair (see {@link parseNaverCredential}). */
+export interface NaverCredential {
+  clientId: string;
+  clientSecret: string;
+}
+
+/**
+ * Naver issues a Client ID *and* a Client Secret per application (SPEC-TSA-001
+ * 후속 T33), unlike every other provider this store holds, which is a single
+ * API key. Rather than widen `KeyStoreFileV1`'s shape for one provider, the
+ * pair is stored as a single `${clientId}:${clientSecret}` string under the
+ * `naverdoc` key, and parsed back out here — the one place both
+ * `academicClients.ts` (client assembly) and `academicKeyHandlers.ts`
+ * (save-time validation) need to agree on the format.
+ *
+ * Returns `null` when `stored` has no colon, or either side is empty after
+ * trimming — both are treated as "not a usable credential" rather than
+ * throwing, so callers can degrade gracefully (omit the source / show a
+ * Korean re-entry prompt) instead of crashing.
+ */
+export function parseNaverCredential(stored: string): NaverCredential | null {
+  const separatorIndex = stored.indexOf(':');
+  if (separatorIndex === -1) return null;
+
+  const clientId = stored.slice(0, separatorIndex).trim();
+  const clientSecret = stored.slice(separatorIndex + 1).trim();
+  if (clientId.length === 0 || clientSecret.length === 0) return null;
+
+  return { clientId, clientSecret };
 }
 
 /**
