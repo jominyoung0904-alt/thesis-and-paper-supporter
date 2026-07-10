@@ -29,6 +29,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { canSendMessage, canSwitchMode, chatReducer, createInitialChatState } from './chatUiLogic';
 import { mapIpcMessagesToChatMessages } from './chatHistoryLogic';
 import { startHandoffFromLatestResult } from './researchHandoffLogic';
+import { SLOW_RESPONSE_DELAY_MS, SLOW_RESPONSE_MESSAGE } from './slowResponseLogic';
 import type { ChatScreenProps } from './chatTypes';
 import { createChatHistoryCallbacks, createResearchHistoryScreenCallbacks } from '../appCallbacks';
 import type { ChatHistoryLoadResult } from '../../shared/ipc-channels';
@@ -62,6 +63,22 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
   // (FR-RSH-003, T51) — cleared on the next send/새 대화/session load so it
   // never lingers past the moment it describes.
   const [handoffPreview, setHandoffPreview] = useState<string | null>(null);
+  const isBusy = state.sending || state.research.active;
+  // Rate-limit visibility (defensive follow-up to the field debugger's
+  // investigation into an intermittent chat/research stall — root cause
+  // unconfirmed): if a turn stays busy for `SLOW_RESPONSE_DELAY_MS` straight,
+  // tell the user it may be a free-tier rate limit instead of leaving them
+  // to guess whether the app has hung. Cleared the instant `isBusy` flips
+  // back to false, so it never lingers past the turn it describes.
+  const [showSlowResponseBanner, setShowSlowResponseBanner] = useState(false);
+  useEffect(() => {
+    if (!isBusy) {
+      setShowSlowResponseBanner(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setShowSlowResponseBanner(true), SLOW_RESPONSE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [isBusy]);
 
   // Auto-scroll to the latest content on new messages and on research
   // start/finish (active flips, or a result/error lands) — not on every
@@ -246,12 +263,17 @@ export function ChatScreen({ callbacks, pendingHandoff, onHandoffConsumed }: Cha
         />
         <div className="chat-scroll-anchor" ref={scrollAnchorRef} />
       </div>
+      {showSlowResponseBanner && (
+        <p className="chat-slow-response-banner" role="status">
+          {SLOW_RESPONSE_MESSAGE}
+        </p>
+      )}
       <MessageInput
         mode={state.mode}
         text={state.inputText}
         canSend={canSendMessage(state)}
         modeLocked={!canSwitchMode(state)}
-        busy={state.sending || state.research.active}
+        busy={isBusy}
         onChangeMode={(mode) => dispatch({ type: 'SET_MODE', mode })}
         onChangeText={(text) => dispatch({ type: 'SET_INPUT', text })}
         onSend={handleSend}

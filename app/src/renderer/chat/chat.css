@@ -145,6 +145,22 @@
   margin: 4px 0;
 }
 
+/* Slow-response rate-limit banner (defensive follow-up to the field
+   debugger's stall investigation — root cause unconfirmed). Shown above
+   `.chat-input-area` once a turn has stayed busy for 30s straight; sits
+   inside `.chat-screen`'s flex column, outside the scrolling area, like
+   `.chat-handoff-preview` above. */
+.chat-slow-response-banner {
+  flex-shrink: 0;
+  background: #fffbeb;
+  border: 1px solid #d97706;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #92400e;
+  margin: 0;
+  font-size: 15px;
+}
+
 /* Always-visible bottom bar (mode toggle + textarea + send button). Never
    shrinks and never scrolls with `.chat-scroll-area` above it (Task T35
    fix#1) — a top border/background keeps it visually distinct from the
