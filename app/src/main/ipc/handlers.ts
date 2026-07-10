@@ -46,6 +46,21 @@ export interface IpcHandlerDeps {
   memoryFilePath: string;
 }
 
+// Security (audit H1): TypeScript types on IPC payloads are compile-time
+// only. A compromised renderer can invoke handlers with arbitrary values, so
+// every handler re-validates its payload at runtime before use.
+const VALID_PROVIDERS = ['claude', 'gemini', 'openai'] as const;
+const VALID_MODES = ['free', 'paid'] as const;
+const MAX_KEY_LENGTH = 512;
+const MAX_CHAT_TEXT_LENGTH = 20_000;
+const MAX_QUESTION_LENGTH = 2_000;
+const MAX_DECISION_FIELD_LENGTH = 2_000;
+const INVALID_REQUEST_MESSAGE = '잘못된 요청이에요. 앱을 다시 시작한 뒤 시도해 주세요.';
+
+function isBoundedString(value: unknown, maxLength: number): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
+}
+
 /** Registers every IPC handler this app exposes. Call once during bootstrap. */
 // @AX:ANCHOR: [AUTO] central IPC wiring — composition root registering every channel handler. Related: SPEC-TSA-001
 export function registerIpcHandlers(deps: IpcHandlerDeps): void {
@@ -76,6 +91,14 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
     IpcChannels.SETTINGS_SAVE_PROVIDER_AND_KEY,
     async (_event, payload: SaveProviderAndKeyRequest): Promise<SaveProviderAndKeyResult> => {
       const { provider, key, mode } = payload;
+
+      if (
+        !(VALID_PROVIDERS as readonly string[]).includes(provider) ||
+        !(VALID_MODES as readonly string[]).includes(mode) ||
+        !isBoundedString(key, MAX_KEY_LENGTH)
+      ) {
+        return { ok: false, message: INVALID_REQUEST_MESSAGE };
+      }
 
       const updatedSettings: AppSettings = { ...getSettings(), llm: { provider, mode } };
 
@@ -113,13 +136,16 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   );
 
   ipcMain.handle(IpcChannels.SHELL_OPEN_EXTERNAL, async (_event, payload: OpenExternalRequest): Promise<void> => {
-    if (!isAllowedExternalUrl(payload.url)) {
+    if (typeof payload?.url !== 'string' || !isAllowedExternalUrl(payload.url)) {
       return;
     }
     await shell.openExternal(payload.url);
   });
 
   ipcMain.handle(IpcChannels.CHAT_SEND, async (_event, payload: ChatSendRequest): Promise<ChatSendResult> => {
+    if (!isBoundedString(payload?.text, MAX_CHAT_TEXT_LENGTH)) {
+      throw new Error(INVALID_REQUEST_MESSAGE);
+    }
     if (!llmService.hasKey()) {
       throw new Error(NO_KEY_MESSAGE);
     }
@@ -136,6 +162,9 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   ipcMain.handle(
     IpcChannels.RESEARCH_RUN,
     async (event: IpcMainInvokeEvent, payload: ResearchRunRequest): Promise<ResearchRunResult> => {
+      if (!isBoundedString(payload?.question, MAX_QUESTION_LENGTH)) {
+        throw new Error(INVALID_REQUEST_MESSAGE);
+      }
       if (!llmService.hasKey()) {
         throw new Error(NO_KEY_MESSAGE);
       }
@@ -161,6 +190,12 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   );
 
   ipcMain.handle(IpcChannels.MEMORY_SAVE_DECISION, async (_event, payload: SaveDecisionRequest): Promise<void> => {
+    if (
+      !isBoundedString(payload?.what, MAX_DECISION_FIELD_LENGTH) ||
+      !isBoundedString(payload?.why, MAX_DECISION_FIELD_LENGTH)
+    ) {
+      throw new Error(INVALID_REQUEST_MESSAGE);
+    }
     memoryStore.addDecision({ what: payload.what, why: payload.why, source: 'chat' });
     memoryStore.save();
   });

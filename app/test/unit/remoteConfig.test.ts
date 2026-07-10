@@ -103,14 +103,14 @@ describe('fetchRemoteConfig', () => {
 });
 
 describe('mergeRemoteIntoSettings', () => {
-  it('overrides only the endpoints provided by the remote payload', () => {
+  it('overrides only the endpoints provided by the remote payload (allowlisted host)', () => {
     const settings = createDefaultSettings();
 
     const merged = mergeRemoteIntoSettings(settings, {
-      endpoints: { claude: 'https://rotated.claude.example' },
+      endpoints: { claude: 'https://rotated.anthropic.com' },
     });
 
-    expect(merged.endpoints.claude).toBe('https://rotated.claude.example');
+    expect(merged.endpoints.claude).toBe('https://rotated.anthropic.com');
     expect(merged.endpoints.gemini).toBe(settings.endpoints.gemini);
   });
 
@@ -121,12 +121,67 @@ describe('mergeRemoteIntoSettings', () => {
     settings.remoteConfigUrl = 'https://mine.example/endpoints.json';
 
     const merged = mergeRemoteIntoSettings(settings, {
-      endpoints: { openai: 'https://rotated.openai.example' },
+      endpoints: { openai: 'https://eu.openai.com' },
     });
 
     expect(merged.llm).toEqual({ provider: 'openai', mode: 'free' });
     expect(merged.proxy).toEqual({ enabled: true, url: 'http://proxy.local:8080' });
     expect(merged.remoteConfigUrl).toBe('https://mine.example/endpoints.json');
+  });
+
+  // Security regression tests (audit C1/H2): a hostile remote config must
+  // never be able to point an endpoint (and thus the user's API key) at an
+  // attacker-controlled host.
+  it('drops remote endpoint overrides whose host is not on the service allowlist', () => {
+    const settings = createDefaultSettings();
+
+    const merged = mergeRemoteIntoSettings(settings, {
+      endpoints: {
+        claude: 'https://attacker.example',
+        gemini: 'https://evil-googleapis.com.attacker.example',
+      },
+    });
+
+    expect(merged.endpoints.claude).toBe(settings.endpoints.claude);
+    expect(merged.endpoints.gemini).toBe(settings.endpoints.gemini);
+  });
+
+  it('drops non-https and malformed remote endpoint overrides', () => {
+    const settings = createDefaultSettings();
+
+    const merged = mergeRemoteIntoSettings(settings, {
+      endpoints: {
+        claude: 'http://api.anthropic.com',
+        openai: 'not a url',
+      },
+    });
+
+    expect(merged.endpoints.claude).toBe(settings.endpoints.claude);
+    expect(merged.endpoints.openai).toBe(settings.endpoints.openai);
+  });
+
+  it('keeps allowlisted overrides while dropping hostile ones in the same payload', () => {
+    const settings = createDefaultSettings();
+
+    const merged = mergeRemoteIntoSettings(settings, {
+      endpoints: {
+        claude: 'https://api2.anthropic.com',
+        gemini: 'https://attacker.example',
+      },
+    });
+
+    expect(merged.endpoints.claude).toBe('https://api2.anthropic.com');
+    expect(merged.endpoints.gemini).toBe(settings.endpoints.gemini);
+  });
+
+  it('rejects a non-https remoteConfigUrl before any fetch happens (invalid-url)', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await fetchRemoteConfig('http://insecure.example/endpoints.json', 1000);
+
+    expect(result).toEqual(expect.objectContaining({ ok: false, reason: 'invalid-url' }));
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('returns settings unchanged when the remote payload has no endpoints', () => {

@@ -17,7 +17,7 @@ export interface RemoteConfigOverride {
   academicKeys?: Record<string, unknown>;
 }
 
-export type RemoteConfigFailureReason = 'network' | 'timeout' | 'http-error' | 'parse-error';
+export type RemoteConfigFailureReason = 'network' | 'timeout' | 'http-error' | 'parse-error' | 'invalid-url';
 
 export interface RemoteConfigSuccess {
   ok: true;
@@ -55,6 +55,17 @@ function failure(reason: RemoteConfigFailureReason): RemoteConfigFailure {
  * to local defaults without special-casing exceptions (NFR-CFG-004).
  */
 export async function fetchRemoteConfig(url: string, timeoutMs: number): Promise<RemoteConfigResult> {
+  // Security (audit H2): the remote config URL must be https — a plain-http
+  // URL (typo or tampered settings) would let an on-path attacker inject
+  // endpoint overrides, which C1 mitigation below would then have to catch.
+  try {
+    if (new URL(url).protocol !== 'https:') {
+      return failure('invalid-url');
+    }
+  } catch {
+    return failure('invalid-url');
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -100,8 +111,54 @@ export async function fetchRemoteConfig(url: string, timeoutMs: number): Promise
  *   directly off the fetch result instead of persisting them into
  *   `settings.json`.
  */
+/**
+ * Security (audit C1): API keys are sent as plain headers to whatever base
+ * URL is configured per provider, so a remote override pointing an endpoint
+ * at an attacker host would silently exfiltrate the user's keys. Every
+ * remote endpoint override must therefore be https AND match the service's
+ * known host allowlist; anything else is dropped.
+ */
+const ALLOWED_ENDPOINT_HOST_SUFFIXES: Record<keyof EndpointsConfig, string[]> = {
+  claude: ['anthropic.com'],
+  gemini: ['googleapis.com'],
+  openai: ['openai.com'],
+  kci: ['data.go.kr', 'kci.go.kr'],
+  scienceon: ['kisti.re.kr'],
+  semanticScholar: ['semanticscholar.org'],
+};
+
+function isAllowedEndpointOverride(key: keyof EndpointsConfig, value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const host = parsed.hostname.toLowerCase();
+    return ALLOWED_ENDPOINT_HOST_SUFFIXES[key].some(
+      (suffix) => host === suffix || host.endsWith(`.${suffix}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function mergeRemoteIntoSettings(settings: AppSettings, remote: RemoteConfigOverride): AppSettings {
   if (!remote.endpoints) {
+    return settings;
+  }
+
+  const sanitized: Partial<EndpointsConfig> = {};
+  for (const key of Object.keys(ALLOWED_ENDPOINT_HOST_SUFFIXES) as (keyof EndpointsConfig)[]) {
+    const candidate = remote.endpoints[key];
+    if (candidate !== undefined && isAllowedEndpointOverride(key, candidate)) {
+      sanitized[key] = candidate;
+    }
+  }
+
+  if (Object.keys(sanitized).length === 0) {
     return settings;
   }
 
@@ -109,7 +166,7 @@ export function mergeRemoteIntoSettings(settings: AppSettings, remote: RemoteCon
     ...settings,
     endpoints: {
       ...settings.endpoints,
-      ...remote.endpoints,
+      ...sanitized,
     },
   };
 }

@@ -2,6 +2,14 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <!-- Security (audit M1): strict CSP. The renderer never talks to the
+         network directly (everything goes through the preload IPC bridge),
+         so 'self' suffices. If a vite dev-server script is added later, it
+         will need a relaxed dev-only CSP (react-refresh injects inline JS). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>논문 작성 서포터</title>
   </head>
