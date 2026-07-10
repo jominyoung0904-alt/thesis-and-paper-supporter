@@ -23,12 +23,23 @@ import { dirname } from 'node:path';
 import type { PaperMetadata } from '../academic-api/types';
 import type { FailedSource, GeneratedQueries, ScreenedPaper } from './types';
 
-/** Bumped whenever the on-disk shape changes; a mismatch is treated as "no checkpoint". */
+/**
+ * Bumped whenever the on-disk shape changes; a mismatch is treated as "no
+ * checkpoint". Bumped 1 → 2 when the detailed-mode 'detailed-screening' stage
+ * was added: a v1 checkpoint written by an older build is silently discarded
+ * rather than mis-resumed under the new stage semantics.
+ */
 // @AX:ANCHOR: [AUTO] checkpoint schema version gate — bump this on any on-disk shape change, mismatches silently discard the checkpoint. Related: SPEC-TSA-002 T61
-export const CHECKPOINT_SCHEMA_VERSION = 1;
+export const CHECKPOINT_SCHEMA_VERSION = 2;
 
-/** Coarse marker of how far a checkpointed run had progressed. */
-export type CheckpointStage = 'searching' | 'screening';
+/**
+ * Coarse marker of how far a checkpointed run had progressed.
+ * 'detailed-screening' marks a "상세검색" run whose second (augmentation) pass
+ * has finished — its `screened`/`papers` already hold the MERGED first+second
+ * set, so a resume from it skips straight to report just like 'screening' does
+ * for a standard run.
+ */
+export type CheckpointStage = 'searching' | 'screening' | 'detailed-screening';
 
 /** The data a caller supplies when checkpointing progress (no version/timestamp bookkeeping). */
 export interface CheckpointData {
@@ -56,7 +67,8 @@ function isCheckpointState(value: unknown): value is CheckpointState {
   const r = value as Record<string, unknown>;
   if (r.version !== CHECKPOINT_SCHEMA_VERSION) return false;
   if (typeof r.question !== 'string' || typeof r.savedAt !== 'string') return false;
-  if (r.completedStage !== 'searching' && r.completedStage !== 'screening') return false;
+  if (r.completedStage !== 'searching' && r.completedStage !== 'screening' && r.completedStage !== 'detailed-screening')
+    return false;
   if (typeof r.queries !== 'object' || r.queries === null) return false;
   if (!Array.isArray(r.papers) || !Array.isArray(r.failedSources)) return false;
   if (r.screened !== undefined && !Array.isArray(r.screened)) return false;

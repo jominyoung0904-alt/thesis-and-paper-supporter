@@ -48,6 +48,11 @@ export function ModeStep({ mode, onSelectMode }: ModeStepProps): JSX.Element {
             <li>입력한 내용이 AI 학습에 쓰이지 않아요.</li>
             <li>사용한 만큼 요금이 청구돼요. (월 예상 요금은 다음 화면에서 안내해 드려요.)</li>
           </ul>
+          <p>
+            유료 모드에서는 &lsquo;상세검색&rsquo;을 켤 수 있어요 — 검색을 한 번 더 반복해 빠진 논문을
+            보강해요. 해외 논문을 아주 폭넓게 탐색하는 것은 Gemini 딥리서치가 여전히 더 유리하지만, 국내
+            논문 검색은 성능 차이가 거의 없어요.
+          </p>
         </button>
       </div>
     </section>

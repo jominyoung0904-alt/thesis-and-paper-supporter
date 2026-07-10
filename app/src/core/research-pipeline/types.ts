@@ -87,6 +87,13 @@ export interface DeepResearchInput {
   onProgress?: (event: ProgressEvent) => void;
   /** Optional resume support (FR-RES-007/008); omitted everywhere the caller has no checkpoint file wired. */
   checkpoint?: CheckpointHooks;
+  /**
+   * Paid-mode "상세검색": when true, runs one extra augmentation search + screen
+   * pass after the standard first pass (see `detailedSearch.ts`). Defaults to
+   * false — omitting it preserves the exact single-pass behavior. The paid-tier
+   * gate lives in `researchGateHandlers.ts`; this flag is trusted here.
+   */
+  detailed?: boolean;
 }
 
 /** The full result of a deep-research run. */

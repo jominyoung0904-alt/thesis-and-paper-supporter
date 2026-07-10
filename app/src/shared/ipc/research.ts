@@ -9,6 +9,14 @@ import type { IpcPaperMetadata } from './library';
 
 export interface ResearchRunRequest {
   question: string;
+  /**
+   * Paid-mode "상세검색" toggle: when true (and the user is on paid mode), the
+   * pipeline runs one extra augmentation search + screen pass to backfill
+   * papers the first pass missed. Optional — omitted/false runs the standard
+   * single pass. The paid-tier gate is enforced in `researchGateHandlers.ts`;
+   * the renderer toggle that sets this is follow-up UI work.
+   */
+  detailed?: boolean;
 }
 
 export interface ResearchProgressPayload {

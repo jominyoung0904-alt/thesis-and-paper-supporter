@@ -109,7 +109,22 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
       const researchDir = getResearchDir();
       const checkpointFile = getCheckpointFile();
 
-      const clients = buildAcademicClients(getSettings(), keyStore);
+      const settings = getSettings();
+      const clients = buildAcademicClients(settings, keyStore);
+
+      // Paid gate for "상세검색" (defense-in-depth: the UI toggle already hides
+      // this in free mode). `payload.detailed` is runtime-validated to a boolean
+      // — a compromised renderer could send anything (IPC types are compile-time
+      // only). Only honor it on paid mode; otherwise fall back to the standard
+      // pass and tell the user once via the progress channel.
+      const requestedDetailed = payload.detailed === true;
+      const detailed = requestedDetailed && settings.llm.mode === 'paid';
+      if (requestedDetailed && !detailed) {
+        event.sender.send(IpcChannels.RESEARCH_PROGRESS, {
+          stage: 'query-gen',
+          detail: '상세검색은 유료 모드에서만 사용할 수 있어 기본 검색으로 진행해요.',
+        } satisfies ResearchProgressPayload);
+      }
 
       try {
         const result = await runDeepResearch({
@@ -118,6 +133,7 @@ export function registerResearchGateHandlers(deps: ResearchGateHandlerDeps): voi
           llm: llmService.getAdapter(),
           clients,
           model: llmService.getModel(),
+          detailed,
           onProgress: (progressEvent: ResearchProgressPayload) => {
             event.sender.send(IpcChannels.RESEARCH_PROGRESS, progressEvent);
           },
