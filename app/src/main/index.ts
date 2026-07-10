@@ -6,6 +6,7 @@ import { app, dialog } from 'electron';
 import { createElectronCryptoBackend, KeyStore } from './config/keyStore';
 import { fetchRemoteConfig, mergeRemoteIntoSettings } from './config/remoteConfig';
 import { loadSettings, saveSettings } from './config/settingsLoader';
+import { registerIpcHandlers } from './ipc/handlers';
 import { ensureAppDirectories, resolveAppPaths } from './paths';
 import { checkRunLocation } from './startup/pathCheck';
 import { showRunLocationErrorAndQuit } from './startup/pathCheckDialog';
@@ -44,7 +45,23 @@ async function bootstrap(): Promise<void> {
 
   const settingsResult = loadSettings(paths.settingsFile);
   const keyStore = new KeyStore(join(paths.dataDir, 'keys.json'), createElectronCryptoBackend());
-  void keyStore; // Handed to IPC handlers in later tasks (T9 wizard, T6 adapters).
+
+  // Mutable settings holder shared with the IPC handlers: the setup wizard /
+  // settings screen may persist a new provider/mode via `setSettings`, and
+  // every handler thereafter must see the updated value via `getSettings`.
+  let currentSettings = settingsResult.settings;
+
+  registerIpcHandlers({
+    keyStore,
+    settingsFile: paths.settingsFile,
+    getSettings: () => currentSettings,
+    setSettings: (settings) => {
+      currentSettings = settings;
+    },
+    // MVP: a single project's memory lives at a fixed path (see MemoryStore's
+    // doc comment; multi-project support is out of scope for this sprint).
+    memoryFilePath: join(paths.dataDir, 'projects', 'default', 'memory.json'),
+  });
 
   createMainWindow();
 
@@ -57,17 +74,23 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  void refreshRemoteConfig(paths.settingsFile, settingsResult.settings.remoteConfigUrl, settingsResult.settings);
+  void refreshRemoteConfig(paths.settingsFile, currentSettings.remoteConfigUrl, currentSettings, (updated) => {
+    currentSettings = updated;
+  });
 }
 
 /**
  * Fetches the remote endpoints.json and merges endpoint overrides into local
  * settings. On failure, shows a non-blocking notice and keeps local values.
+ * On success, `onMerged` propagates the updated settings into the shared
+ * `currentSettings` holder so IPC handlers (LLM base URLs, academic client
+ * endpoints) see the refreshed endpoints without an app restart.
  */
 async function refreshRemoteConfig(
   settingsFile: string,
   remoteConfigUrl: string,
   settings: ReturnType<typeof loadSettings>['settings'],
+  onMerged: (settings: ReturnType<typeof loadSettings>['settings']) => void,
 ): Promise<void> {
   const result = await fetchRemoteConfig(remoteConfigUrl, REMOTE_CONFIG_TIMEOUT_MS);
 
@@ -84,6 +107,7 @@ async function refreshRemoteConfig(
   const merged = mergeRemoteIntoSettings(settings, result.data);
   if (merged !== settings) {
     saveSettings(settingsFile, merged);
+    onMerged(merged);
   }
 }
 

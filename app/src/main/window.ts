@@ -5,6 +5,10 @@ import { BrowserWindow } from 'electron';
 /**
  * Creates the single main window for the app. The renderer's dev server URL
  * is used in development; the built static bundle is loaded in packaged mode.
+ *
+ * `preload.js` is the compiled output of `src/main/preload.ts` (same output
+ * directory as this file — see `tsconfig.main.json`'s `rootDir`/`outDir`) and
+ * exposes `window.thesisApi` to the renderer via `contextBridge`.
  */
 export function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -15,6 +19,7 @@ export function createMainWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: join(__dirname, 'preload.js'),
     },
   });
 
