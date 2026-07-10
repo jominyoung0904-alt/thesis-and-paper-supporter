@@ -80,8 +80,18 @@ describe('buildAcademicClients (SPEC-TSA-001 후속: OpenAlex 전환 우선순�
     expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'kci', 'scienceon']);
   });
 
-  it('omits googlecse when a user key is registered but cx is the default empty placeholder', () => {
+  it('includes googlecse with the bundled default cx when a user key is registered', () => {
+    // The default settings now ship a real riss.kr search-engine id
+    // (2026-07-11), so a user key alone is enough to activate the source.
     const settings = createDefaultSettings();
+    const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
+
+    expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar', 'googlecse']);
+  });
+
+  it('omits googlecse when cx is explicitly cleared even if a user key exists', () => {
+    const settings = createDefaultSettings();
+    settings.academicSearch.googleCseCx = '';
     const clients = buildAcademicClients(settings, fakeKeyStore({ googlecse: { ok: true, key: 'user-google-key' } }));
 
     expect(clients.map((client) => client.source)).toEqual(['openalex', 'semanticscholar']);
