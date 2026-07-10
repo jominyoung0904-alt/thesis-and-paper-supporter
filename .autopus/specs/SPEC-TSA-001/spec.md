@@ -1,7 +1,7 @@
 ---
 id: SPEC-TSA-001
 title: 논문 작성 서포터 1단계 MVP
-status: implemented
+status: completed
 created: 2026-07-10
 domain: TSA
 source:
@@ -11,7 +11,7 @@ source:
 
 # SPEC-TSA-001: 논문 작성 서포터 1단계 MVP
 
-**Status**: implemented (Sprint 1 — 2026-07-10, 커밋 99201b0~; Sprint 2 태스크 13개 잔여)
+**Status**: completed (Sprint 1 — 2026-07-11 sync 완료; Sprint 2 태스크 13개는 후속 SPEC/스프린트에서 진행)
 **Created**: 2026-07-10
 **Domain**: TSA (Thesis Support App)
 

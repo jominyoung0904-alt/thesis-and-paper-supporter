@@ -86,12 +86,25 @@ async function bootstrap(): Promise<void> {
  * `currentSettings` holder so IPC handlers (LLM base URLs, academic client
  * endpoints) see the refreshed endpoints without an app restart.
  */
+/**
+ * The default settings ship with a placeholder remote-config URL until the
+ * real hosting domain is decided. Fetching it would fail on every launch and
+ * show the failure dialog each time — skip silently instead.
+ */
+function isPlaceholderRemoteConfigUrl(url: string): boolean {
+  return url.includes('OWNER.github.io');
+}
+
 async function refreshRemoteConfig(
   settingsFile: string,
   remoteConfigUrl: string,
   settings: ReturnType<typeof loadSettings>['settings'],
   onMerged: (settings: ReturnType<typeof loadSettings>['settings']) => void,
 ): Promise<void> {
+  if (isPlaceholderRemoteConfigUrl(remoteConfigUrl)) {
+    return;
+  }
+
   const result = await fetchRemoteConfig(remoteConfigUrl, REMOTE_CONFIG_TIMEOUT_MS);
 
   if (!result.ok) {
