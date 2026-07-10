@@ -10,7 +10,6 @@
 
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
-import { IpcChannels } from '../shared/ipc-channels';
 import type {
   ChatSendResult,
   IpcGateSectionId,
@@ -27,6 +26,26 @@ import type {
   StartupState,
 } from '../shared/ipc-channels';
 import type { ThesisApi } from '../shared/thesisApi';
+
+/**
+ * Sandboxed preloads (sandbox: true) can only require 'electron' and a few
+ * Node builtins — a relative `require('../shared/ipc-channels')` throws at
+ * load time and silently kills the whole bridge (2026-07-11 field bug:
+ * white screen on packaged builds). Channel names are therefore inlined
+ * here as literals. They MUST stay in sync with `src/shared/ipc-channels.ts`;
+ * `test/unit/preloadChannels.test.ts` enforces that. Type-only imports above
+ * are safe — they are fully erased at compile time.
+ */
+const IpcChannels = {
+  APP_GET_STARTUP_STATE: 'app:get-startup-state',
+  SETTINGS_SAVE_PROVIDER_AND_KEY: 'settings:save-provider-and-key',
+  SHELL_OPEN_EXTERNAL: 'shell:open-external',
+  CHAT_SEND: 'chat:send',
+  RESEARCH_RUN: 'research:run',
+  RESEARCH_PROGRESS: 'research:progress',
+  MEMORY_SAVE_DECISION: 'memory:save-decision',
+  QUALITY_GATE_RUN: 'quality-gate:run',
+} as const;
 
 const thesisApi: ThesisApi = {
   getStartupState(): Promise<StartupState> {
