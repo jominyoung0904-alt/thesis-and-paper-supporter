@@ -1,9 +1,10 @@
 /**
  * Adapts `window.thesisApi` (the generic, IPC-shaped preload bridge) into
- * the domain-specific callback contracts `Wizard` and `ChatScreen` expect
- * (`WizardCallbacks`, `ChatScreenCallbacks`). This is the "type mirror
- * adapter" boundary: `window.thesisApi` speaks `shared/ipc-channels.ts`
- * shapes, these factories translate 1:1 into the renderer's own local types.
+ * the domain-specific callback contracts `Wizard`, `ChatScreen`, and
+ * `WritingCheckScreen` expect (`WizardCallbacks`, `ChatScreenCallbacks`,
+ * `WritingCheckCallbacks`). This is the "type mirror adapter" boundary:
+ * `window.thesisApi` speaks `shared/ipc-channels.ts` shapes, these factories
+ * translate 1:1 into the renderer's own local types.
  *
  * Note: `ChatMessage` (core `{content, at}` vs renderer `{text, createdAt}`)
  * never needs mapping here — the chat/research IPC results only ever carry
@@ -13,6 +14,7 @@
  */
 import type { WizardCallbacks } from './settings/wizard';
 import type { ChatScreenCallbacks } from './chat';
+import type { WritingCheckCallbacks } from './writing/WritingCheckScreen';
 
 export function createWizardCallbacks(): WizardCallbacks {
   return {
@@ -53,5 +55,11 @@ export function createChatScreenCallbacks(): ChatScreenCallbacks {
     },
 
     openLink: (url) => window.thesisApi.openExternal(url),
+  };
+}
+
+export function createWritingCheckCallbacks(): WritingCheckCallbacks {
+  return {
+    runQualityGate: (sectionId, text) => window.thesisApi.runQualityGate(sectionId, text),
   };
 }

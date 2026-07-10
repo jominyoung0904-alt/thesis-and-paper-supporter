@@ -26,7 +26,8 @@ export interface CryptoBackend {
 
 export type SaveKeyResult =
   | { ok: true }
-  | { ok: false; reason: 'unavailable'; userMessage: string };
+  | { ok: false; reason: 'unavailable'; userMessage: string }
+  | { ok: false; reason: 'invalid'; userMessage: string };
 
 export type KeyReadResult =
   | { ok: true; key: string }
@@ -49,6 +50,8 @@ const DECRYPT_FAILED_MESSAGE =
   '(폴더를 다른 컴퓨터로 옮기면 보안을 위해 이전에 등록한 키를 사용할 수 없어요.)';
 
 const CORRUPTED_FILE_MESSAGE = '저장된 키 파일이 손상되었어요. API 키를 다시 등록해 주세요.';
+
+const INVALID_KEY_MESSAGE = '빈 값이나 공백만으로는 키를 저장할 수 없어요. API 키를 정확히 입력해 주세요.';
 
 function isValidStoreShape(value: unknown): value is KeyStoreFileV1 {
   if (typeof value !== 'object' || value === null) {
@@ -126,8 +129,17 @@ export class KeyStore {
     private readonly backend: CryptoBackend,
   ) {}
 
-  /** Encrypts and persists `plainKey` for `provider`. Rejects plain-text storage. */
+  /**
+   * Encrypts and persists `plainKey` for `provider`. Rejects plain-text
+   * storage, and rejects empty/whitespace-only keys before ever touching the
+   * backend or disk (review-fix LOW: an empty "key" is never a usable
+   * credential, so accepting it would only defer a confusing failure to the
+   * next API call).
+   */
   saveKey(provider: KeyProvider, plainKey: string): SaveKeyResult {
+    if (plainKey.trim().length === 0) {
+      return { ok: false, reason: 'invalid', userMessage: INVALID_KEY_MESSAGE };
+    }
     if (!this.backend.isAvailable()) {
       return { ok: false, reason: 'unavailable', userMessage: UNAVAILABLE_MESSAGE };
     }

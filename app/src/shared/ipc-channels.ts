@@ -28,6 +28,8 @@ export const IpcChannels = {
   RESEARCH_PROGRESS: 'research:progress',
   /** Persists a confirmed research decision into project memory. */
   MEMORY_SAVE_DECISION: 'memory:save-decision',
+  /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */
+  QUALITY_GATE_RUN: 'quality-gate:run',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];
@@ -116,4 +118,31 @@ export interface ResearchRunResult {
 export interface SaveDecisionRequest {
   what: string;
   why: string;
+}
+
+// --- quality-gate:run ---
+
+/**
+ * Section ids whose quality gate can currently be run through IPC.
+ * Whitelisted at the handler boundary (only 'introduction' ships in phase 1
+ * — see `core/writing/gateDefinitions.ts`).
+ */
+export type IpcGateSectionId = 'introduction';
+
+export interface QualityGateRunRequest {
+  sectionId: IpcGateSectionId;
+  text: string;
+}
+
+export interface IpcCriterionResult {
+  criterionId: string;
+  passed: boolean;
+  feedback: string;
+}
+
+export interface QualityGateRunResult {
+  sectionId: string;
+  passed: boolean;
+  results: IpcCriterionResult[];
+  summary: string;
 }

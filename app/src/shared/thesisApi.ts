@@ -7,8 +7,10 @@
 
 import type {
   ChatSendResult,
+  IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
+  QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunResult,
   SaveProviderAndKeyResult,
@@ -28,4 +30,6 @@ export interface ThesisApi {
   runResearch(question: string, onProgress: (event: ResearchProgressPayload) => void): Promise<ResearchRunResult>;
   /** Persists a confirmed research decision. */
   saveDecision(what: string, why: string): Promise<void>;
+  /** Runs a section quality-gate check against user-supplied text (FR-WRT-001/002). */
+  runQualityGate(sectionId: IpcGateSectionId, text: string): Promise<QualityGateRunResult>;
 }

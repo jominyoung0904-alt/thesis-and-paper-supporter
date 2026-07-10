@@ -13,9 +13,12 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import { IpcChannels } from '../shared/ipc-channels';
 import type {
   ChatSendResult,
+  IpcGateSectionId,
   IpcLlmMode,
   IpcLlmProvider,
   OpenExternalRequest,
+  QualityGateRunRequest,
+  QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunResult,
   SaveDecisionRequest,
@@ -68,6 +71,11 @@ const thesisApi: ThesisApi = {
   saveDecision(what: string, why: string): Promise<void> {
     const req: SaveDecisionRequest = { what, why };
     return ipcRenderer.invoke(IpcChannels.MEMORY_SAVE_DECISION, req) as Promise<void>;
+  },
+
+  runQualityGate(sectionId: IpcGateSectionId, text: string): Promise<QualityGateRunResult> {
+    const req: QualityGateRunRequest = { sectionId, text };
+    return ipcRenderer.invoke(IpcChannels.QUALITY_GATE_RUN, req) as Promise<QualityGateRunResult>;
   },
 };
 

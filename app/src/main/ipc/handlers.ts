@@ -19,12 +19,17 @@ import { ConversationManager } from '../../core/chat/conversation';
 import { MemoryStore } from '../../core/memory/store';
 import { serializeMemoryForPrompt } from '../../core/memory/serializer';
 import { runDeepResearch } from '../../core/research-pipeline/pipeline';
+import { runQualityGate } from '../../core/writing/qualityGate';
+import { introductionGateDefinition } from '../../core/writing/gateDefinitions';
+import type { SectionGateDefinition } from '../../core/writing/gateDefinitions';
 import { isAllowedExternalUrl } from '../../shared/externalUrlPolicy';
 import { IpcChannels } from '../../shared/ipc-channels';
 import type {
   ChatSendRequest,
   ChatSendResult,
   OpenExternalRequest,
+  QualityGateRunRequest,
+  QualityGateRunResult,
   ResearchProgressPayload,
   ResearchRunRequest,
   ResearchRunResult,
@@ -55,7 +60,15 @@ const MAX_KEY_LENGTH = 512;
 const MAX_CHAT_TEXT_LENGTH = 20_000;
 const MAX_QUESTION_LENGTH = 2_000;
 const MAX_DECISION_FIELD_LENGTH = 2_000;
+const MAX_GATE_TEXT_LENGTH = 50_000;
 const INVALID_REQUEST_MESSAGE = '잘못된 요청이에요. 앱을 다시 시작한 뒤 시도해 주세요.';
+
+// Only 'introduction' ships in phase 1 (FR-WRT-001) — extend this map, not
+// the handler below, when future sections (body, conclusion) are added.
+const GATE_DEFINITIONS: Record<string, SectionGateDefinition> = {
+  introduction: introductionGateDefinition,
+};
+const VALID_GATE_SECTIONS = Object.keys(GATE_DEFINITIONS);
 
 function isBoundedString(value: unknown, maxLength: number): value is string {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
@@ -199,4 +212,29 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
     memoryStore.addDecision({ what: payload.what, why: payload.why, source: 'chat' });
     memoryStore.save();
   });
+
+  ipcMain.handle(
+    IpcChannels.QUALITY_GATE_RUN,
+    async (_event, payload: QualityGateRunRequest): Promise<QualityGateRunResult> => {
+      const definition = VALID_GATE_SECTIONS.includes(payload?.sectionId)
+        ? GATE_DEFINITIONS[payload.sectionId]
+        : undefined;
+      if (!definition || !isBoundedString(payload?.text, MAX_GATE_TEXT_LENGTH)) {
+        throw new Error(INVALID_REQUEST_MESSAGE);
+      }
+      if (!llmService.hasKey()) {
+        throw new Error(NO_KEY_MESSAGE);
+      }
+
+      try {
+        return await runQualityGate(definition, payload.text, {
+          llm: llmService.getAdapter(),
+          model: llmService.getModel(),
+          memory: serializeMemoryForPrompt(memoryStore.getSnapshot()),
+        });
+      } catch (err) {
+        throw new Error(translateLlmError(err).message);
+      }
+    },
+  );
 }

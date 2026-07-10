@@ -94,6 +94,22 @@ describe('KeyStore', () => {
     expect(store.listStoredProviders()).toEqual([]);
   });
 
+  it('rejects saving an empty or whitespace-only key with a Korean message, without touching the backend', () => {
+    const emptyResult = store.saveKey('claude', '');
+    if (emptyResult.ok || emptyResult.reason !== 'invalid') {
+      throw new Error('expected an "invalid" failure result for an empty key');
+    }
+    expect(emptyResult.userMessage).toMatch(/공백/);
+
+    const whitespaceResult = store.saveKey('claude', '   \n\t  ');
+    if (whitespaceResult.ok || whitespaceResult.reason !== 'invalid') {
+      throw new Error('expected an "invalid" failure result for a whitespace-only key');
+    }
+
+    expect(existsSync(filePath)).toBe(false);
+    expect(store.listStoredProviders()).toEqual([]);
+  });
+
   it('rejects saving with a Korean message when the backend is unavailable', () => {
     backend.available = false;
 
