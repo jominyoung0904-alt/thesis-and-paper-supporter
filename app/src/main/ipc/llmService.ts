@@ -27,7 +27,7 @@ export const NO_KEY_MESSAGE = 'AI 기능을 사용하려면 먼저 설정에서 
 export interface LlmService {
   /** Whether the currently selected provider has a usable stored key. */
   hasKey(): boolean;
-  /** Default model id for the currently selected provider. */
+  /** Model id for the currently selected provider (settings override, falling back to the default). */
   getModel(): string;
   /** Returns the cached (or freshly built) adapter for the current settings. Throws if no key is stored. */
   getAdapter(): LlmAdapter;
@@ -69,7 +69,8 @@ export function createLlmService(getSettings: () => AppSettings, keyStore: KeySt
       return keyStore.readKey(getSettings().llm.provider).ok;
     },
     getModel(): string {
-      return DEFAULT_MODELS[getSettings().llm.provider];
+      const settings = getSettings();
+      return settings.models[settings.llm.provider] ?? DEFAULT_MODELS[settings.llm.provider];
     },
     getAdapter(): LlmAdapter {
       if (!cached) {

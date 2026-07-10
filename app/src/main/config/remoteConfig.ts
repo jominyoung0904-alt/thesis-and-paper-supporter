@@ -1,4 +1,4 @@
-import type { AppSettings, EndpointsConfig } from './defaultSettings';
+import type { AppSettings, EndpointsConfig, LlmProvider, ModelOverrides } from './defaultSettings';
 
 /**
  * Optional overrides published in the remote `endpoints.json`. Every field
@@ -7,8 +7,13 @@ import type { AppSettings, EndpointsConfig } from './defaultSettings';
  */
 export interface RemoteConfigOverride {
   endpoints?: Partial<EndpointsConfig>;
-  /** Free-form model-name/version hints, not part of the persisted schema. */
-  models?: Record<string, unknown>;
+  /**
+   * Optional per-provider model id overrides, merged into
+   * `settings.models` after validation (see `isAllowedModelOverride`).
+   * Unknown/invalid values are dropped rather than rejecting the whole
+   * payload.
+   */
+  models?: Partial<Record<LlmProvider, unknown>>;
   /** Optional Korean notice about pricing changes, shown as-is to the user. */
   pricingNotice?: string;
   /** Optional Korean announcement banner text. */
@@ -106,10 +111,13 @@ export async function fetchRemoteConfig(url: string, timeoutMs: number): Promise
  * - `llm.provider`, `llm.mode`, `proxy.*`, `remoteConfigUrl`: always kept as
  *   the user's local value — the remote config must never silently change a
  *   user preference.
- * - `models`, `pricingNotice`, `announcement`, `academicKeys`: informational
- *   fields that are not part of the settings schema; callers read them
- *   directly off the fetch result instead of persisting them into
- *   `settings.json`.
+ * - `models.*`: remote values override local values per-provider when
+ *   present in `remote.models` AND pass validation (see
+ *   `isAllowedModelOverride`); invalid entries are dropped and logged rather
+ *   than blocking the rest of the payload.
+ * - `pricingNotice`, `announcement`, `academicKeys`: informational fields
+ *   that are not part of the settings schema; callers read them directly off
+ *   the fetch result instead of persisting them into `settings.json`.
  */
 /**
  * Security (audit C1): API keys are sent as plain headers to whatever base
@@ -148,28 +156,77 @@ function isAllowedEndpointOverride(key: keyof EndpointsConfig, value: unknown): 
   }
 }
 
-export function mergeRemoteIntoSettings(settings: AppSettings, remote: RemoteConfigOverride): AppSettings {
-  if (!remote.endpoints) {
-    return settings;
+const VALID_LLM_PROVIDERS: readonly LlmProvider[] = ['gemini', 'claude', 'openai'];
+
+/**
+ * Security: a remote model-id override is passed straight into API request
+ * bodies (`llmService.getModel()`), never used as a host/URL, so the only
+ * risk is an attacker steering requests to an unexpected/expensive model or
+ * injecting control characters. Restricted to a short, allowlisted charset
+ * covering every real provider model id (letters, digits, `.`, `_`, `:`, `-`).
+ */
+const MODEL_ID_PATTERN = /^[a-zA-Z0-9._:-]+$/;
+const MAX_MODEL_ID_LENGTH = 100;
+
+function isAllowedModelOverride(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length >= 1 &&
+    value.length <= MAX_MODEL_ID_LENGTH &&
+    MODEL_ID_PATTERN.test(value)
+  );
+}
+
+/**
+ * Validates the remote `models` section, dropping (and logging) any entry
+ * that is not a recognized provider key or fails {@link isAllowedModelOverride}.
+ */
+function sanitizeModelOverrides(remoteModels: RemoteConfigOverride['models']): Partial<ModelOverrides> {
+  const sanitized: Partial<ModelOverrides> = {};
+  if (!remoteModels) {
+    return sanitized;
   }
 
-  const sanitized: Partial<EndpointsConfig> = {};
-  for (const key of Object.keys(ALLOWED_ENDPOINT_HOST_SUFFIXES) as (keyof EndpointsConfig)[]) {
-    const candidate = remote.endpoints[key];
-    if (candidate !== undefined && isAllowedEndpointOverride(key, candidate)) {
-      sanitized[key] = candidate;
+  for (const key of Object.keys(remoteModels)) {
+    if (!(VALID_LLM_PROVIDERS as readonly string[]).includes(key)) {
+      console.warn(`[remoteConfig] ignoring unknown models.${key} override`);
+      continue;
+    }
+    const provider = key as LlmProvider;
+    const candidate = remoteModels[provider];
+    if (isAllowedModelOverride(candidate)) {
+      sanitized[provider] = candidate;
+    } else {
+      console.warn(`[remoteConfig] ignoring invalid models.${provider} override:`, candidate);
     }
   }
 
-  if (Object.keys(sanitized).length === 0) {
+  return sanitized;
+}
+
+export function mergeRemoteIntoSettings(settings: AppSettings, remote: RemoteConfigOverride): AppSettings {
+  const sanitizedEndpoints: Partial<EndpointsConfig> = {};
+  if (remote.endpoints) {
+    for (const key of Object.keys(ALLOWED_ENDPOINT_HOST_SUFFIXES) as (keyof EndpointsConfig)[]) {
+      const candidate = remote.endpoints[key];
+      if (candidate !== undefined && isAllowedEndpointOverride(key, candidate)) {
+        sanitizedEndpoints[key] = candidate;
+      }
+    }
+  }
+
+  const sanitizedModels = sanitizeModelOverrides(remote.models);
+
+  const hasEndpointChanges = Object.keys(sanitizedEndpoints).length > 0;
+  const hasModelChanges = Object.keys(sanitizedModels).length > 0;
+
+  if (!hasEndpointChanges && !hasModelChanges) {
     return settings;
   }
 
   return {
     ...settings,
-    endpoints: {
-      ...settings.endpoints,
-      ...sanitized,
-    },
+    endpoints: hasEndpointChanges ? { ...settings.endpoints, ...sanitizedEndpoints } : settings.endpoints,
+    models: hasModelChanges ? { ...settings.models, ...sanitizedModels } : settings.models,
   };
 }

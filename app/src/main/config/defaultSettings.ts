@@ -6,11 +6,23 @@
  * the file in Notepad and edit it safely (NFR-CFG-001).
  */
 
+import { DEFAULT_MODELS } from './defaultModels';
+
 /** Supported LLM providers the user can pick as their default. */
 export type LlmProvider = 'gemini' | 'claude' | 'openai';
 
 /** Free-tier vs paid-tier usage mode for the selected provider. */
 export type LlmMode = 'free' | 'paid';
+
+/**
+ * Model id to use per provider, overriding `DEFAULT_MODELS` (defaultModels.ts).
+ * Ships pre-filled with the current defaults so `settings.json` is
+ * self-documenting — a non-technical user can see and edit the active model
+ * id directly in Notepad. When a key is missing (an older `settings.json`
+ * predating this field), `loadSettings`'s default-merge logic fills it back
+ * in from `DEFAULT_MODELS` automatically.
+ */
+export type ModelOverrides = Record<LlmProvider, string>;
 
 /** Base URLs for every external service the app talks to. */
 export interface EndpointsConfig {
@@ -66,6 +78,8 @@ export interface AppSettings {
     mode: LlmMode;
   };
   endpoints: EndpointsConfig;
+  /** Per-provider model id overrides — see {@link ModelOverrides}. */
+  models: ModelOverrides;
   /** URL of the remote endpoints.json used to refresh `endpoints` at startup. */
   remoteConfigUrl: string;
   proxy: ProxyConfig;
@@ -98,6 +112,10 @@ const DEFAULT_SETTINGS_TEMPLATE: AppSettings = {
     googleCse: 'https://www.googleapis.com',
     naver: 'https://openapi.naver.com',
   },
+  // Pre-filled with the current DEFAULT_MODELS so a fresh settings.json is
+  // self-documenting; refreshed automatically from the remote endpoints.json
+  // `models` section when present (see remoteConfig.ts).
+  models: { ...DEFAULT_MODELS },
   // Live remote-config file (GitHub Pages, provisioned 2026-07-11). Editing
   // that file updates endpoint overrides / notices for every install without
   // shipping a new zip. See NFR-CFG-002.
