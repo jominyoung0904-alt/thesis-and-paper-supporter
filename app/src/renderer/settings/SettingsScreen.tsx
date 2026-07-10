@@ -9,7 +9,14 @@
  */
 import { useEffect, useState } from 'react';
 
-import type { AcademicKeyStatus, IpcAcademicKeyProvider } from '../../shared/ipc-channels';
+import type {
+  AcademicKeyStatus,
+  IpcAcademicKeyProvider,
+  IpcLlmMode,
+  IpcLlmProvider,
+  LlmStatusResult,
+} from '../../shared/ipc-channels';
+import { LlmProviderCard } from './LlmProviderCard';
 import type { AcademicKeyCardState } from './settingsScreenLogic';
 import {
   ACADEMIC_KEY_CARDS,
@@ -24,6 +31,14 @@ export interface SettingsScreenCallbacks {
   saveAcademicKey(provider: IpcAcademicKeyProvider, key: string): Promise<{ ok: boolean; message?: string }>;
   getAcademicKeyStatus(): Promise<AcademicKeyStatus>;
   openExternal(url: string): void;
+  /** Reports the currently active LLM provider/mode and whether a key is registered for it. */
+  getLlmStatus(): Promise<LlmStatusResult>;
+  /** Persists the chosen provider + API key and verifies connectivity (shared with the wizard). */
+  saveProviderAndKey(
+    provider: IpcLlmProvider,
+    key: string,
+    mode: IpcLlmMode,
+  ): Promise<{ ok: boolean; message?: string }>;
 }
 
 export interface SettingsScreenProps {
@@ -109,6 +124,14 @@ export function SettingsScreen({ callbacks }: SettingsScreenProps): JSX.Element 
 
   return (
     <div className="settings-screen">
+      <LlmProviderCard
+        callbacks={{
+          getLlmStatus: callbacks.getLlmStatus,
+          saveProviderAndKey: callbacks.saveProviderAndKey,
+          openExternal: callbacks.openExternal,
+        }}
+      />
+
       <h2>학술 검색 키 (선택)</h2>
       <p className="settings-screen-lead">
         등록하지 않아도 논문 검색은 바로 쓸 수 있어요. 개인 키를 등록하면 검색 범위가 넓어지거나 더 빠르게

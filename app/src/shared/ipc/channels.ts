@@ -17,6 +17,8 @@ export const IpcChannels = {
   APP_GET_STARTUP_STATE: 'app:get-startup-state',
   /** Saves an LLM provider + API key and verifies connectivity. */
   SETTINGS_SAVE_PROVIDER_AND_KEY: 'settings:save-provider-and-key',
+  /** Reports the currently active LLM provider/mode and whether a key is registered for it. */
+  SETTINGS_GET_LLM_STATUS: 'settings:get-llm-status',
   /** Opens an allow-listed URL in the user's default external browser. */
   SHELL_OPEN_EXTERNAL: 'shell:open-external',
   /** Sends one "아이디어 회의" chat turn. */

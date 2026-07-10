@@ -32,6 +32,7 @@ import type {
   LibrarySaveResult,
   LibraryUpdateMemoRequest,
   LibraryUpdateMemoResult,
+  LlmStatusResult,
   MockReviewHistoryGetResult,
   MockReviewHistoryListResult,
   MockReviewHistoryRemoveResult,
@@ -76,6 +77,7 @@ import type { ThesisApi } from '../shared/thesisApi';
 const IpcChannels = {
   APP_GET_STARTUP_STATE: 'app:get-startup-state',
   SETTINGS_SAVE_PROVIDER_AND_KEY: 'settings:save-provider-and-key',
+  SETTINGS_GET_LLM_STATUS: 'settings:get-llm-status',
   SHELL_OPEN_EXTERNAL: 'shell:open-external',
   CHAT_SEND: 'chat:send',
   RESEARCH_RUN: 'research:run',
@@ -123,6 +125,10 @@ const thesisApi: ThesisApi = {
   ): Promise<SaveProviderAndKeyResult> {
     const req: SaveProviderAndKeyRequest = { provider, key, mode };
     return ipcRenderer.invoke(IpcChannels.SETTINGS_SAVE_PROVIDER_AND_KEY, req) as Promise<SaveProviderAndKeyResult>;
+  },
+
+  getLlmStatus(): Promise<LlmStatusResult> {
+    return ipcRenderer.invoke(IpcChannels.SETTINGS_GET_LLM_STATUS) as Promise<LlmStatusResult>;
   },
 
   openExternal(url: string): void {

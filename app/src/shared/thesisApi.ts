@@ -24,6 +24,7 @@ import type {
   LibraryRemoveResult,
   LibrarySaveResult,
   LibraryUpdateMemoResult,
+  LlmStatusResult,
   MockReviewHistoryGetResult,
   MockReviewHistoryListResult,
   MockReviewHistoryRemoveResult,
@@ -51,6 +52,8 @@ export interface ThesisApi {
   getStartupState(): Promise<StartupState>;
   /** Persists the chosen provider + API key and verifies connectivity. */
   saveProviderAndKey(provider: IpcLlmProvider, key: string, mode: IpcLlmMode): Promise<SaveProviderAndKeyResult>;
+  /** Reports the currently active LLM provider/mode and whether a key is registered for it. */
+  getLlmStatus(): Promise<LlmStatusResult>;
   /** Opens an allow-listed URL in the user's default external browser. */
   openExternal(url: string): void;
   /** Sends one "아이디어 회의" chat turn and returns the assistant's reply. */

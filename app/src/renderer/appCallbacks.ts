@@ -109,6 +109,8 @@ export function createSettingsScreenCallbacks(): SettingsScreenCallbacks {
     saveAcademicKey: (provider, key) => window.thesisApi.saveAcademicKey(provider, key),
     getAcademicKeyStatus: () => window.thesisApi.getAcademicKeyStatus(),
     openExternal: (url) => window.thesisApi.openExternal(url),
+    getLlmStatus: () => window.thesisApi.getLlmStatus(),
+    saveProviderAndKey: (provider, key, mode) => window.thesisApi.saveProviderAndKey(provider, key, mode),
   };
 }
 

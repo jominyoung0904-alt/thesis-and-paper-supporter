@@ -19,6 +19,20 @@ export interface SaveProviderAndKeyResult {
   message?: string;
 }
 
+// --- settings:get-llm-status ---
+
+/**
+ * Current provider/mode/key-presence snapshot for the Settings tab's "AI
+ * 연결 변경" card (실사용 피드백: no post-onboarding entry point existed to
+ * change provider/mode/key). Never carries the key itself — only whether one
+ * is currently registered for `provider`.
+ */
+export interface LlmStatusResult {
+  provider: IpcLlmProvider;
+  mode: IpcLlmMode;
+  hasKey: boolean;
+}
+
 // --- chat:send ---
 
 export interface ChatSendRequest {

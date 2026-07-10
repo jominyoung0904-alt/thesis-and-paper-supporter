@@ -20,6 +20,7 @@ import { translateLlmError } from '../../core/llm/errorTranslator';
 import { isAllowedExternalUrl } from '../../shared/externalUrlPolicy';
 import { IpcChannels } from '../../shared/ipc-channels';
 import type {
+  LlmStatusResult,
   OpenExternalRequest,
   SaveProviderAndKeyRequest,
   SaveProviderAndKeyResult,
@@ -100,6 +101,18 @@ export function registerSettingsHandlers(deps: SettingsHandlerDeps): void {
       return { ok: true };
     },
   );
+
+  ipcMain.handle(IpcChannels.SETTINGS_GET_LLM_STATUS, async (): Promise<LlmStatusResult> => {
+    const settings = getSettings();
+    return {
+      provider: settings.llm.provider,
+      mode: settings.llm.mode,
+      // Never returns the key itself — only whether one is registered for
+      // the currently active provider (a stale key for a *different*
+      // provider must not read as "connected").
+      hasKey: keyStore.listStoredProviders().includes(settings.llm.provider),
+    };
+  });
 
   ipcMain.handle(IpcChannels.SHELL_OPEN_EXTERNAL, async (_event, payload: OpenExternalRequest): Promise<void> => {
     if (typeof payload?.url !== 'string' || !isAllowedExternalUrl(payload.url)) {

@@ -140,3 +140,32 @@
 .settings-card-message-error {
   color: #b91c1c;
 }
+
+.settings-llm-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.settings-llm-option {
+  padding: 8px 16px;
+  border: 2px solid #ccc;
+  border-radius: 999px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+}
+
+.settings-llm-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-llm-option-active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
