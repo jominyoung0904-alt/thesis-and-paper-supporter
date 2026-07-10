@@ -9,9 +9,35 @@
   padding: 24px;
   font-size: 18px;
   line-height: 1.6;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Task T35 fix#1: fill the remaining viewport height below the tab bar
+     (`.app-main` is the 100%-height flex column ancestor — see appTabs.css)
+     so the input area below never needs page-level scrolling to reach. */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Only this area scrolls — messages, research report, decision card. The
+   mode toggle + textarea (`.chat-input-area`, a sibling below) never
+   scrolls out of view (KakaoTalk-style always-visible input). */
+.chat-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Zero-height scroll target — kept scrolled into view on new content
+   (see ChatScreen.tsx's auto-scroll effect) so the latest message/result
+   is always visible without a manual scroll. */
+.chat-scroll-anchor {
+  height: 0;
 }
 
 .chat-message-list {
@@ -80,6 +106,17 @@
   margin: 4px 0;
 }
 
+/* Always-visible bottom bar (mode toggle + textarea + send button). Never
+   shrinks and never scrolls with `.chat-scroll-area` above it (Task T35
+   fix#1) — a top border/background keeps it visually distinct from the
+   scrolled content ending right above it. */
+.chat-input-area {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+}
+
 .chat-mode-toggle {
   display: flex;
   gap: 8px;
@@ -134,83 +171,6 @@
 .chat-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.research-panel {
-  border: 2px solid #ddd;
-  border-radius: 12px;
-  padding: 16px 20px;
-  background: #fafafa;
-}
-
-.research-progress-label {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-.research-progress-step {
-  color: #666;
-  font-size: 15px;
-}
-
-.research-error {
-  color: #b91c1c;
-}
-
-.research-failed-banner {
-  background: #fef3c7;
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #92400e;
-  margin-bottom: 12px;
-}
-
-.research-report h4 {
-  margin: 12px 0 6px;
-}
-
-.research-references,
-.research-related {
-  margin-top: 16px;
-}
-
-.research-ref-list {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.research-ref-row {
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 8px;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.research-ref-number {
-  font-weight: bold;
-}
-
-.research-ref-meta,
-.research-ref-source {
-  color: #444;
-}
-
-.research-paper-title-link {
-  background: none;
-  border: none;
-  color: #2563eb;
-  text-decoration: underline;
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-}
-
-.research-paper-title {
-  font-weight: bold;
 }
 
 .decision-card {

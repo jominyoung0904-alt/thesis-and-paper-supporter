@@ -1,0 +1,102 @@
+/*
+ * "논문 찾기" (research) progress + result panel styling. Split out of
+ * chat.css (Task T35, file-size-limit) — imported directly by
+ * `ResearchProgress.tsx`.
+ */
+
+.research-panel {
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: #fafafa;
+}
+
+.research-progress-label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.research-progress-step {
+  color: #666;
+  font-size: 15px;
+}
+
+.research-error {
+  color: #b91c1c;
+}
+
+.research-failed-banner {
+  background: #fef3c7;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #92400e;
+  margin-bottom: 12px;
+}
+
+.research-report h4 {
+  margin: 12px 0 6px;
+}
+
+/* Clickable `[n]` citation marker inside the report body (Task T35 fix#2).
+   Click jumps to and highlights the matching `.research-ref-row`. */
+.research-citation-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: bold;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.research-references,
+.research-related {
+  margin-top: 16px;
+}
+
+.research-ref-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.research-ref-row {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+/* Applied for 1.5s after the matching `[n]` citation link is clicked
+   (Task T35 fix#2), so the jump target is easy to spot. */
+.research-ref-row-highlight {
+  background-color: #fef9c3;
+}
+
+.research-ref-number {
+  font-weight: bold;
+}
+
+.research-ref-meta,
+.research-ref-source {
+  color: #444;
+}
+
+.research-paper-title-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.research-paper-title {
+  font-weight: bold;
+}

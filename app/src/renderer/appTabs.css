@@ -1,9 +1,27 @@
 /*
  * Main-screen tab switcher styling ("💬 대화" / "✍️ 서론 점검"). Same
  * large-text, high-contrast approach as chat.css/qualityGateView.css.
+ *
+ * Task T35 fix#1: html/body/#root/.app-main form an explicit 100%-height
+ * chain so `.chat-screen` can size itself with `flex: 1` to exactly fill
+ * the remaining viewport space below the tab bar (see chat.css). This is
+ * harmless for the other tabs (writing/settings): they don't opt into
+ * `flex: 1`, so their natural (auto) height and the page's normal scroll
+ * behavior are unchanged.
  */
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  height: 100%;
+}
+
 .app-main {
+  height: 100%;
   display: flex;
   flex-direction: column;
 }

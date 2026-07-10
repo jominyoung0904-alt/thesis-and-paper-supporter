@@ -15,6 +15,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Mounted outside #root (Task T35 fix#3) so the zoom-based font-scale
+         control applied to #root never scales the control widget itself. -->
+    <div id="font-size-control-root"></div>
     <script type="module" src="/src/renderer/main.tsx"></script>
   </body>
 </html>

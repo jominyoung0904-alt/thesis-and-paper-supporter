@@ -6,8 +6,17 @@
  * toggle, never by navigating to a different screen. Like `Wizard.tsx`, it
  * performs no IPC of its own — every side effect goes through
  * `ChatScreenCallbacks`, supplied by the central app shell.
+ *
+ * Layout (Task T35 fix#1): the screen is viewport-fixed — only
+ * `.chat-scroll-area` (messages + research panel + decision card) scrolls;
+ * `MessageInput` (mode toggle + textarea) is a non-scrolling flex sibling
+ * that always stays visible at the bottom, KakaoTalk-style, instead of being
+ * pushed off-screen by a long research report. A bottom anchor element is
+ * scrolled into view whenever a new message arrives or a research run
+ * finishes, so the latest content is always in view without the user
+ * having to scroll manually.
  */
-import { useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 
 import { canSendMessage, canSwitchMode, chatReducer, createInitialChatState } from './chatUiLogic';
 import type { ChatScreenProps } from './chatTypes';
@@ -25,6 +34,14 @@ function makeId(): string {
 
 export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
   const [state, dispatch] = useReducer(chatReducer, createInitialChatState());
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the latest content on new messages and on research
+  // start/finish (active flips, or a result/error lands) — not on every
+  // keystroke or progress-stage tick, so it doesn't fight manual scrolling.
+  useEffect(() => {
+    scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [state.messages.length, state.research.active, state.research.result, state.research.errorMessage]);
 
   async function handleSend(): Promise<void> {
     const text = state.inputText.trim();
@@ -83,13 +100,16 @@ export function ChatScreen({ callbacks }: ChatScreenProps): JSX.Element {
 
   return (
     <div className="chat-screen">
-      <MessageList messages={state.messages} />
-      <ResearchProgress research={state.research} onOpenLink={callbacks.openLink} />
-      <DecisionConfirmCard
-        card={state.decisionCard}
-        onConfirm={handleConfirmDecision}
-        onDismiss={() => dispatch({ type: 'DECISION_DISMISS' })}
-      />
+      <div className="chat-scroll-area">
+        <MessageList messages={state.messages} />
+        <ResearchProgress research={state.research} onOpenLink={callbacks.openLink} />
+        <DecisionConfirmCard
+          card={state.decisionCard}
+          onConfirm={handleConfirmDecision}
+          onDismiss={() => dispatch({ type: 'DECISION_DISMISS' })}
+        />
+        <div className="chat-scroll-anchor" ref={scrollAnchorRef} />
+      </div>
       <MessageInput
         mode={state.mode}
         text={state.inputText}

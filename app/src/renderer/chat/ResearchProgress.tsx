@@ -5,11 +5,20 @@
  * flight, then the finished report + paper list once done. A failed-source
  * banner explains partial results transparently (FR-RES-009) instead of
  * silently dropping a provider.
+ *
+ * Task T35 fix#2: `[n]` citation markers inside the report body are
+ * clickable — clicking one scrolls the matching numbered reference row
+ * into view and highlights it briefly, so the reader doesn't have to hunt
+ * through the reference list manually.
  */
+import { useState } from 'react';
+
+import { CITATION_HIGHLIGHT_MS, referenceElementId, splitCitationSegments } from './citationLink';
 import { parseMarkdownLite } from './markdownLite';
 import { researchStageIndex, researchStageLabel, RESEARCH_STAGE_COUNT } from './progressStages';
 import type { ResearchFailedSourceView, ResearchPaperView, ResearchView } from './chatTypes';
 import type { ResearchRunState } from './chatUiLogic';
+import './researchPanel.css';
 
 interface ResearchProgressProps {
   research: ResearchRunState;
@@ -32,21 +41,26 @@ function ProgressBar({ stage }: { stage: string | null }): JSX.Element {
 /**
  * One reference line: `[n] 저자 (연도). 제목. 출처` where the title is a
  * clickable link (falls back to plain text when there's no URL). `number`
- * is `null` for the unnumbered "관련이 있을 수 있는 문헌" section.
+ * is `null` for the unnumbered "관련이 있을 수 있는 문헌" section. Carries an
+ * `id` (Task T35 fix#2) so an in-report `[n]` citation link can scroll here,
+ * and briefly highlights when it is the current jump target.
  */
 function ReferenceRow({
   number,
   paper,
+  highlighted,
   onOpenLink,
 }: {
   number: number | null;
   paper: ResearchPaperView;
+  highlighted: boolean;
   onOpenLink(url: string): void;
 }): JSX.Element {
   const authors = paper.authors.length > 0 ? paper.authors.join(', ') : '저자 미상';
   const year = paper.year ?? '연도 미상';
+  const rowClassName = `research-ref-row${highlighted ? ' research-ref-row-highlight' : ''}`;
   return (
-    <li className="research-ref-row">
+    <li id={number !== null ? referenceElementId(number) : undefined} className={rowClassName}>
       {number !== null && <span className="research-ref-number">[{number}] </span>}
       <span className="research-ref-meta">
         {authors} ({year}).{' '}
@@ -75,30 +89,83 @@ function FailedSourceBanner({ failedSources }: { failedSources: ResearchFailedSo
   );
 }
 
-function ReportBody({ report }: { report: string }): JSX.Element {
+/** Renders `text` with any `[n]` citation markers as clickable jump links (Task T35 fix#2). */
+function CitationText({ text, onCitationClick }: { text: string; onCitationClick(number: number): void }): JSX.Element {
+  return (
+    <>
+      {splitCitationSegments(text).map((segment, index) =>
+        segment.citation !== null ? (
+          <button
+            type="button"
+            key={index}
+            className="research-citation-link"
+            onClick={() => onCitationClick(segment.citation as number)}
+          >
+            {segment.text}
+          </button>
+        ) : (
+          <span key={index}>{segment.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function ReportBody({
+  report,
+  onCitationClick,
+}: {
+  report: string;
+  onCitationClick(number: number): void;
+}): JSX.Element {
   const blocks = parseMarkdownLite(report);
   return (
     <div className="research-report">
       {blocks.map((block, index) => {
         if (block.type === 'heading') {
-          return <h4 key={index}>{block.runs.map((r) => r.text).join('')}</h4>;
+          const text = block.runs.map((r) => r.text).join('');
+          return (
+            <h4 key={index}>
+              <CitationText text={text} onCitationClick={onCitationClick} />
+            </h4>
+          );
         }
         if (block.type === 'list') {
           return (
             <ul key={index}>
               {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>{item.map((r) => r.text).join('')}</li>
+                <li key={itemIndex}>
+                  <CitationText text={item.map((r) => r.text).join('')} onCitationClick={onCitationClick} />
+                </li>
               ))}
             </ul>
           );
         }
-        return <p key={index}>{block.runs.map((r) => r.text).join('')}</p>;
+        const text = block.runs.map((r) => r.text).join('');
+        return (
+          <p key={index}>
+            <CitationText text={text} onCitationClick={onCitationClick} />
+          </p>
+        );
       })}
     </div>
   );
 }
 
 export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps): JSX.Element | null {
+  // Which numbered reference row is currently highlighted after a `[n]`
+  // citation click (Task T35 fix#2), if any. Cleared automatically after
+  // `CITATION_HIGHLIGHT_MS`.
+  const [highlightedRef, setHighlightedRef] = useState<number | null>(null);
+
+  function handleCitationClick(number: number): void {
+    document.getElementById(referenceElementId(number))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedRef(number);
+    window.setTimeout(() => {
+      setHighlightedRef((current) => (current === number ? null : current));
+    }, CITATION_HIGHLIGHT_MS);
+  }
+
   if (!research.active && !research.result && !research.errorMessage) {
     return null;
   }
@@ -110,13 +177,19 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
       {research.result && (
         <div className="research-result">
           <FailedSourceBanner failedSources={research.result.failedSources} />
-          <ReportBody report={research.result.report} />
+          <ReportBody report={research.result.report} onCitationClick={handleCitationClick} />
           {research.result.citedPapers.length > 0 && (
             <div className="research-references">
               <h4>참고문헌</h4>
               <ul className="research-ref-list">
                 {research.result.citedPapers.map((paper, index) => (
-                  <ReferenceRow key={index} number={index + 1} paper={paper} onOpenLink={onOpenLink} />
+                  <ReferenceRow
+                    key={index}
+                    number={index + 1}
+                    paper={paper}
+                    highlighted={highlightedRef === index + 1}
+                    onOpenLink={onOpenLink}
+                  />
                 ))}
               </ul>
             </div>
@@ -126,7 +199,7 @@ export function ResearchProgress({ research, onOpenLink }: ResearchProgressProps
               <h4>관련이 있을 수 있는 문헌</h4>
               <ul className="research-ref-list">
                 {research.result.relatedPapers.map((paper, index) => (
-                  <ReferenceRow key={index} number={null} paper={paper} onOpenLink={onOpenLink} />
+                  <ReferenceRow key={index} number={null} paper={paper} highlighted={false} onOpenLink={onOpenLink} />
                 ))}
               </ul>
             </div>

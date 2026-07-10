@@ -9,6 +9,11 @@
  * FR-WRT-001/002 quality-gate screen). Both screens are pure — every side
  * effect flows through `window.thesisApi` via the callback factories in
  * `appCallbacks.ts`.
+ *
+ * `FontSizeControl` is intentionally NOT mounted here — it lives in its own
+ * DOM root outside `#root` (see `main.tsx`/`index.html`) so the zoom-based
+ * font-scale it applies to `#root` never scales the control widget itself
+ * (Task T35 fix#3).
  */
 import { useEffect, useState } from 'react';
 
@@ -19,7 +24,6 @@ import {
   createWizardCallbacks,
   createWritingCheckCallbacks,
 } from './appCallbacks';
-import { FontSizeControl } from './FontSizeControl';
 import { SettingsScreen } from './settings/SettingsScreen';
 import { Wizard } from './settings/wizard';
 import { WritingCheckScreen } from './writing/WritingCheckScreen';
@@ -56,12 +60,7 @@ export function App(): JSX.Element {
     };
   }, []);
 
-  return (
-    <>
-      <FontSizeControl />
-      {renderBody(status, mainTab, setStatus, setMainTab)}
-    </>
-  );
+  return renderBody(status, mainTab, setStatus, setMainTab);
 }
 
 function renderBody(

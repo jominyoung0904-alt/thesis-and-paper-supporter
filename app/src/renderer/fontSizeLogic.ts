@@ -1,9 +1,11 @@
 /**
  * Pure logic for the floating font-size control (실사용 피드백 #4b):
- * clamping, stepping, and localStorage persistence of the html-root
- * font-size scale (percent, applied as `document.documentElement.style
- * .fontSize`). Framework-free so it is unit-testable without a DOM,
- * following the same split used by `settingsScreenLogic.ts`.
+ * clamping, stepping, and localStorage persistence of the app-wide zoom
+ * scale (percent, applied to `#root` via the CSS `zoom` property — see
+ * `FontSizeControl.tsx` for why `zoom` replaced the earlier html-root
+ * font-size approach in Task T35 fix#3). Framework-free so it is
+ * unit-testable without a DOM, following the same split used by
+ * `settingsScreenLogic.ts`.
  */
 
 export const FONT_SCALE_MIN = 80;
