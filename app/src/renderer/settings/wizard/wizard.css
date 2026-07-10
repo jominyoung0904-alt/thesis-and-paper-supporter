@@ -1,0 +1,167 @@
+/*
+ * Wizard styling. Deliberately large text + high-contrast colors: the
+ * primary audience is non-technical grad students, some on unfamiliar or
+ * older hardware, so legibility takes priority over density.
+ */
+
+.wizard {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.wizard h1 {
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.wizard h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.wizard-indicator {
+  margin-bottom: 24px;
+}
+
+.wizard-indicator-text {
+  font-size: 16px;
+  color: #555;
+}
+
+.wizard-indicator-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.wizard-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ddd;
+}
+
+.wizard-dot-active {
+  background: #2563eb;
+}
+
+.wizard-step {
+  min-height: 280px;
+  margin-bottom: 24px;
+}
+
+.wizard-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wizard-card {
+  flex: 1 1 260px;
+  text-align: left;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.wizard-card-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.wizard-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wizard-tab {
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.wizard-tab-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  font-weight: bold;
+}
+
+.wizard-steps-list {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.wizard-key-field {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.wizard-input {
+  flex: 1;
+  font-size: 18px;
+  padding: 12px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+}
+
+.wizard-btn-toggle {
+  padding: 0 16px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.wizard-hint-error {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
+.wizard-footnote {
+  margin-top: 24px;
+  font-size: 15px;
+  color: #666;
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wizard-btn {
+  font-size: 18px;
+  padding: 14px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.wizard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wizard-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  margin-left: auto;
+}
+
+.wizard-btn-secondary {
+  background: #fff;
+  border: 2px solid #2563eb;
+  color: #2563eb;
+}
