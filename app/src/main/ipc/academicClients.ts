@@ -1,13 +1,20 @@
 /**
  * Assembles the academic clients passed into `runDeepResearch` (FR-RES-002).
  *
- * Semantic Scholar runs in real mode unconditionally — its unauthenticated
- * tier needs no key. KCI and ScienceON resolve their key/mock-mode via
- * {@link resolveAcademicKey} (NFR-ACAPI-001): a user-registered key always
- * wins; otherwise the app falls back to the build's bundled shared key
- * (`bundledKeys.ts`); only when neither exists does the client run in mock
- * mode (real key approval for both sources is a manual, slow process — see
- * `core/academic-api/kciClient.ts`'s doc comment).
+ * SPEC-TSA-001 후속 (2026-07-11): KCI (IP-restricted) and ScienceON
+ * (MAC-restricted) turned out to be unreachable from a distributed desktop
+ * app in real-world testing — see research.md "국내 API 전환 결정". OpenAlex
+ * requires no key and has no IP/MAC restriction, and its Korean-language
+ * search also surfaces KCI DOI-registered journal articles, so it now runs
+ * in real mode unconditionally alongside Semantic Scholar.
+ *
+ * KCI/ScienceON are included only when a real key resolves for them (a
+ * user-registered key, or — as a personal/advanced-build option only, since
+ * the bundled-key path can never work in a deployed build given the
+ * IP/MAC restriction above — the build's bundled key via `bundledKeys.ts`).
+ * When neither is available, that source is left out of the list entirely:
+ * with OpenAlex already covering domestic search, showing the user mock
+ * data for KCI/ScienceON no longer serves any purpose.
  */
 
 import type { AppSettings } from '../config/defaultSettings';
@@ -15,6 +22,7 @@ import type { KeyReadResult, KeyStore } from '../config/keyStore';
 import { BUNDLED_ACADEMIC_KEYS } from '../config/bundledKeys';
 import type { AcademicClient } from '../../core/academic-api/types';
 import { KciClient } from '../../core/academic-api/kciClient';
+import { OpenAlexClient } from '../../core/academic-api/openAlexClient';
 import { ScienceOnClient } from '../../core/academic-api/scienceOnClient';
 import { SemanticScholarClient } from '../../core/academic-api/semanticScholarClient';
 
@@ -26,8 +34,10 @@ interface ResolvedAcademicKey {
 /**
  * Key priority for one academic source (NFR-ACAPI-001):
  * 1. The user's own registered key (`KeyStore`) — always preferred.
- * 2. The build's bundled shared key (`bundledKeys.ts`) — ships real access
- *    out of the box, once a key has been injected at deployment time.
+ * 2. The build's bundled shared key (`bundledKeys.ts`) — a personal/advanced
+ *    build option only; it does NOT work in a deployed release build,
+ *    because both KCI and ScienceON reject requests from outside their
+ *    allow-listed IP/MAC (see research.md "국내 API 전환 결정").
  * 3. Mock mode — no user key and no bundled key available for this source.
  */
 export function resolveAcademicKey(userKeyResult: KeyReadResult, bundledKey: string): ResolvedAcademicKey {
@@ -44,20 +54,38 @@ export function buildAcademicClients(settings: AppSettings, keyStore: KeyStore):
   const kciResolved = resolveAcademicKey(keyStore.readKey('kci'), BUNDLED_ACADEMIC_KEYS.kci);
   const scienceonResolved = resolveAcademicKey(keyStore.readKey('scienceon'), BUNDLED_ACADEMIC_KEYS.scienceon);
 
-  return [
+  const clients: AcademicClient[] = [
+    new OpenAlexClient({
+      baseUrl: settings.endpoints.openalex,
+      mockMode: false,
+    }),
     new SemanticScholarClient({
       baseUrl: settings.endpoints.semanticScholar,
       mockMode: false,
     }),
-    new KciClient({
-      baseUrl: settings.endpoints.kci,
-      apiKey: kciResolved.apiKey,
-      mockMode: kciResolved.mockMode,
-    }),
-    new ScienceOnClient({
-      baseUrl: settings.endpoints.scienceon,
-      apiKey: scienceonResolved.apiKey,
-      mockMode: scienceonResolved.mockMode,
-    }),
   ];
+
+  // KCI/ScienceON are omitted entirely (not even in mock mode) when no real
+  // key resolved — see module doc comment above.
+  if (!kciResolved.mockMode) {
+    clients.push(
+      new KciClient({
+        baseUrl: settings.endpoints.kci,
+        apiKey: kciResolved.apiKey,
+        mockMode: false,
+      }),
+    );
+  }
+
+  if (!scienceonResolved.mockMode) {
+    clients.push(
+      new ScienceOnClient({
+        baseUrl: settings.endpoints.scienceon,
+        apiKey: scienceonResolved.apiKey,
+        mockMode: false,
+      }),
+    );
+  }
+
+  return clients;
 }

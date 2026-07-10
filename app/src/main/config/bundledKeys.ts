@@ -2,19 +2,18 @@
  * Bundled (shared) academic API keys, embedded at build time (NFR-ACAPI-001:
  * "압축 해제 직후 별도 설정 없이 학술 검색이 가능하도록 한다").
  *
- * Deployment mechanism: before shipping a release build, inject the real
- * KCI/ScienceON keys obtained for this app's own registration into the
- * values below — or, per NFR-ACAPI-005, replace/revoke them post-release via
- * a remote-config `academicKeys` override (see `remoteConfig.ts`'s
- * `RemoteConfigOverride`; wiring that override through is a follow-up, not
- * part of this change). An empty string means "no bundled key available for
- * this source yet" — `academicClients.ts` then falls back to mock mode for
- * that source instead of failing.
+ * SPEC-TSA-001 후속 (2026-07-11): this path is now a personal/advanced-build
+ * option only. KCI is IP-restricted and ScienceON is MAC-restricted, so
+ * neither works from a distributed release build regardless of what key is
+ * bundled here — that is why domestic search moved to OpenAlex (keyless, no
+ * IP/MAC restriction; see `openAlexClient.ts` and research.md "국내 API 전환
+ * 결정"). This mechanism remains for a user who builds the app themselves on
+ * a machine/network that KCI or ScienceON already allow-lists.
  *
- * Obtaining and injecting real keys is a deployment-time operational step
- * (owned by whoever ships the build, not by this code) — this module only
- * provides the mechanism, so activating a bundled key is a single-line edit
- * once one is issued.
+ * An empty string means "no bundled key available for this source" —
+ * `academicClients.ts` then omits that source entirely instead of falling
+ * back to mock mode (mock data has no remaining purpose now that OpenAlex
+ * covers the same ground for every user).
  */
 export interface BundledAcademicKeys {
   kci: string;

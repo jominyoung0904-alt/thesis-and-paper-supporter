@@ -26,6 +26,8 @@ export interface EndpointsConfig {
   scienceon: string;
   /** Semantic Scholar API base URL. */
   semanticScholar: string;
+  /** OpenAlex API base URL — keyless, no IP/MAC restriction (SPEC-TSA-001 후속). */
+  openalex: string;
 }
 
 /** Optional outbound HTTP proxy configuration, e.g. for restricted networks. */
@@ -69,6 +71,7 @@ const DEFAULT_SETTINGS_TEMPLATE: AppSettings = {
     kci: 'https://www.data.go.kr',
     scienceon: 'https://apigateway.kisti.re.kr',
     semanticScholar: 'https://api.semanticscholar.org',
+    openalex: 'https://api.openalex.org',
   },
   // Placeholder — replace OWNER with the actual GitHub Pages owner/repo once published.
   remoteConfigUrl: 'https://OWNER.github.io/thesis-supporter/endpoints.json',

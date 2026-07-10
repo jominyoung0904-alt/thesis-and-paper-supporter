@@ -120,7 +120,12 @@ async function searchOneClient(client: AcademicClient, queries: GeneratedQueries
   return { papers };
 }
 
-/** KCI/ScienceON search Korean terms; Semantic Scholar searches English. */
+/**
+ * Semantic Scholar searches English terms; every other source (OpenAlex,
+ * and — when a real key is registered — KCI/ScienceON) searches Korean
+ * terms (SPEC-TSA-001 후속: OpenAlex는 키 없이 국내 학술지를 반환하므로 이제
+ * 국문 검색어를 담당하는 기본 소스다).
+ */
 function termsForSource(client: AcademicClient, queries: GeneratedQueries): string[] {
   return client.source === 'semanticscholar' ? queries.en : queries.ko;
 }

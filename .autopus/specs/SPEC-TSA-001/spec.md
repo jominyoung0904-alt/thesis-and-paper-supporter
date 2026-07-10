@@ -49,7 +49,7 @@ PRD의 미해결 질문 7건 중 6건은 아래와 같이 합리적 기본값을
 ### 2. 선행연구 딥리서치
 
 - FR-RES-001 [P0]: WHEN 사용자가 채팅에 선행연구 질의를 입력하면, THE SYSTEM SHALL LLM을 통해 국문 및 영문 검색어를 각각 생성한다.
-- FR-RES-002 [P0]: WHEN 검색어가 생성되면, THE SYSTEM SHALL KCI OPEN API, ScienceON API, Semantic Scholar API를 병렬로 조회하여 제목/초록/저자/인용수를 수집한다.
+- FR-RES-002 [P0]: WHEN 검색어가 생성되면, THE SYSTEM SHALL OpenAlex(국내외 통합, 키리스)와 Semantic Scholar API를 병렬로 조회하여 제목/초록/저자/인용수를 수집한다. WHERE 사용자가 개인 KCI/ScienceON 키를 등록했을 때는 해당 소스도 병렬 조회에 추가한다. (2026-07-11 개정 — KCI IP 제한·ScienceON MAC 제한 실측에 따른 아키텍처 전환, research.md 참조)
 - FR-RES-003 [P0]: WHEN 병렬 조회 결과가 수집되면, THE SYSTEM SHALL 연구 질문과의 관련도를 기준으로 경량 모델을 사용해 스크리닝한다.
 - FR-RES-004 [P0]: THE SYSTEM SHALL 스크리닝된 결과를 종합한 리포트를 생성하며, 모든 인용 항목에 실제 원문 링크 또는 원문 접근 안내를 첨부한다.
 - FR-RES-005 [P0]: THE SYSTEM SHALL 리포트의 서지정보(저자/제목/발행연도 등)를 학술 API 응답에서만 결정론적으로 채우며, LLM이 서지정보를 직접 생성하는 경로를 제공하지 않는다.
