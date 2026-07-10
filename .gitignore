@@ -23,3 +23,4 @@ Thumbs.db
 # Env files
 .env
 .env.local
+app/coverage/
