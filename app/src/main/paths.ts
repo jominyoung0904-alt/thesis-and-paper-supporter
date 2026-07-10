@@ -31,6 +31,7 @@ export interface ResolveAppPathsInput {
  * function (or reuse an already-resolved `AppPaths`) instead of computing
  * paths themselves.
  */
+// @AX:ANCHOR: [AUTO] single source of truth for portable path resolution — high fan-in, do not change signature casually. Related: SPEC-TSA-001
 export function resolveAppPaths(input: ResolveAppPathsInput): AppPaths {
   const root = input.isPackaged ? dirname(input.execPath) : dirname(input.appPath);
 

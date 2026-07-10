@@ -17,6 +17,7 @@ import { createOpenaiAdapter } from './openaiAdapter';
 import type { AdapterOptions, LlmAdapter, LlmProvider } from './types';
 
 /** Routes a provider name to its adapter. Throws on an unknown provider. */
+// @AX:ANCHOR: [AUTO] public entry point for the LLM adapter layer — all consumers must import from here. Related: NFR-LLM-001
 export function createAdapter(provider: LlmProvider, opts: AdapterOptions): LlmAdapter {
   switch (provider) {
     case 'claude':

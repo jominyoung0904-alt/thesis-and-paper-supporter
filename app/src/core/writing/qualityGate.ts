@@ -199,6 +199,7 @@ async function evaluateLlmCriteriaOnce(
 }
 
 /** Evaluates all 'llm' criteria in a single batched call, with one retry; never fails open. */
+// @AX:NOTE: [AUTO] fail-closed by design — an unparseable/incomplete LLM response marks criteria failed, never passed. Related: FR-WRT-002
 async function runLlmCriteria(
   def: SectionGateDefinition,
   llmCriteria: GateCriterion[],
@@ -234,6 +235,7 @@ function buildSummary(def: SectionGateDefinition, results: CriterionResult[]): s
  * judged in one batched call with a single retry on malformed JSON. The
  * gate never passes silently on failure (FR-WRT-002).
  */
+// @AX:ANCHOR: [AUTO] generic section quality-gate engine entry point, reusable across sections. Related: FR-WRT-001, FR-WRT-007
 export async function runQualityGate(
   def: SectionGateDefinition,
   sectionText: string,

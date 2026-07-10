@@ -1,0 +1,739 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for core/academic-api/mockData.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">core/academic-api</a> mockData.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>186/186</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">88.88% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>8/9</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>1/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>186/186</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">91x</span>
+<span class="cline-any cline-yes">91x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Deterministic mock fixtures for the three academic API clients
+ * (FR-RES-002, NFR-ACAPI-001). Used whenever a client is constructed with
+ * `mockMode: true` — this is the only verified path until the real KCI and
+ * ScienceON keys clear manual approval (see research.md), and it is what
+ * lets the deep-research pipeline (T15) and the E2E suite (T29) run without
+ * any real key.
+ *
+ * Field shapes mirror the real `PaperMetadata` contract exactly (authors as
+ * an array, nullable abstract/venue/citationCount) so downstream code never
+ * has to special-case mock vs. real data.
+ */
+&nbsp;
+import type { PaperMetadata } from './types';
+&nbsp;
+export const KCI_MOCK_PAPERS: PaperMetadata[] = [
+  {
+    source: 'kci', externalId: 'kci-mock-001',
+    title: '인공지능 기반 논문 작성 지원 도구의 사용성 연구',
+    authors: ['김민준', '이서연'], year: 2024,
+    abstract: '본 연구는 대학원생을 대상으로 인공지능 기반 논문 작성 지원 도구의 사용성을 평가하고 개선 방향을 제시한다.',
+    venue: '정보처리학회논문지', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-001',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-002',
+    title: '대학원생의 연구윤리 인식과 표절 예방 교육 효과',
+    authors: ['박지훈'], year: 2023,
+    abstract: '연구윤리 교육 프로그램 참여 전후 대학원생의 표절 인식 변화를 설문조사를 통해 분석하였다.',
+    venue: '교육학연구', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-002',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-003',
+    title: '딥러닝을 활용한 학술 문헌 자동 분류 시스템 설계',
+    authors: ['최유진', '정하늘', '오세훈'], year: 2024,
+    abstract: '학술 문헌의 주제 분류 정확도를 높이기 위해 트랜스포머 기반 분류 모델을 설계하고 검증하였다.',
+    venue: '한국컴퓨터정보학회논문지', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-003',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-004',
+    title: '질적 연구방법론에서의 신뢰성 확보 전략',
+    authors: ['한소희'], year: 2022,
+    abstract: '질적 연구의 신뢰성과 타당성을 확보하기 위한 삼각검증 및 동료 검토 전략을 사례 중심으로 논의한다.',
+    venue: '질적탐구', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-004',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-005',
+    title: '블록체인 기반 학술 데이터 무결성 검증 프레임워크',
+    authors: ['윤도현', '강나은'], year: 2023,
+    abstract: '학술 데이터의 위변조를 방지하기 위한 블록체인 기반 무결성 검증 프레임워크를 제안하고 성능을 평가하였다.',
+    venue: '정보보호학회논문지', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-005',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-006',
+    title: '대학원생 정신건강과 학업 스트레스의 상관관계 분석',
+    authors: ['임하은'], year: 2021,
+    abstract: '국내 대학원생 500명을 대상으로 학업 스트레스와 정신건강 지표 간의 상관관계를 회귀분석으로 검증하였다.',
+    venue: '한국심리학회지', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-006',
+    citationCount: null,
+  },
+  {
+    source: 'kci', externalId: 'kci-mock-007',
+    title: '자연어처리 기반 논문 요약 모델의 성능 비교 연구',
+    authors: ['서준영', '배수아'], year: 2024,
+    abstract: '추출 요약과 생성 요약 방식의 논문 요약 모델을 국문 학술 문헌에 적용하여 성능을 비교하였다.',
+    venue: '한국정보과학회 학술발표논문집', url: 'https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=kci-mock-007',
+    citationCount: null,
+  },
+];
+&nbsp;
+export const SCIENCEON_MOCK_PAPERS: PaperMetadata[] = [
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-001',
+    title: '센서 네트워크 기반 실시간 환경 모니터링 시스템',
+    authors: ['조은비', '문재원'], year: 2023,
+    abstract: '저전력 센서 노드로 구성된 무선 네트워크를 통해 실내 환경 데이터를 실시간으로 수집·전송하는 시스템을 구현하였다.',
+    venue: '전자공학회논문지', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-001',
+    citationCount: 4,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-002',
+    title: '대학원 교육에서의 멘토링 프로그램 효과성 분석',
+    authors: ['신유나'], year: 2022,
+    abstract: '대학원 신입생 대상 멘토링 프로그램 참여가 학업 적응과 연구 몰입도에 미치는 영향을 분석하였다.',
+    venue: '고등교육정책연구', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-002',
+    citationCount: 2,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-003',
+    title: '강화학습을 이용한 로봇 경로 계획 최적화',
+    authors: ['백승호', '노아름', '류지안'], year: 2024,
+    abstract: '동적 장애물이 존재하는 환경에서 강화학습 기반 경로 계획 알고리즘의 수렴 속도와 안전성을 개선하였다.',
+    venue: '로봇학회논문지', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-003',
+    citationCount: 7,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-004',
+    title: '소셜미디어 담론 분석을 통한 청년 정책 인식 연구',
+    authors: ['홍지수'], year: 2023,
+    abstract: '소셜미디어 게시글 텍스트 마이닝을 통해 청년 정책에 대한 인식과 여론 변화를 추적하였다.',
+    venue: '사회과학연구', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-004',
+    citationCount: 1,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-005',
+    title: '저전력 IoT 디바이스를 위한 에너지 하베스팅 기술 동향',
+    authors: ['권도윤', '장은서'], year: 2022,
+    abstract: '진동, 열, 광원 기반 에너지 하베스팅 기술을 IoT 디바이스 전원 설계에 적용하는 최신 동향을 정리하였다.',
+    venue: '대한전기학회논문지', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-005',
+    citationCount: 5,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-006',
+    title: '온라인 학습 환경에서의 학습자 자기조절 전략 연구',
+    authors: ['남기범'], year: 2021,
+    abstract: '비대면 온라인 강좌 수강생의 자기조절학습 전략 사용 양상을 로그 데이터로 분석하였다.',
+    venue: '교육공학연구', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-006',
+    citationCount: 3,
+  },
+  {
+    source: 'scienceon', externalId: 'scienceon-mock-007',
+    title: '자율주행을 위한 라이다-카메라 센서 퓨전 기법',
+    authors: ['천예린', '도현우'], year: 2024,
+    abstract: '라이다와 카메라 데이터를 결합한 센서 퓨전 기법으로 악천후 환경에서의 객체 인식 정확도를 개선하였다.',
+    venue: '자동차공학회논문집', url: 'https://scienceon.kisti.re.kr/srch/selectPORSrchArticle.do?cn=scienceon-mock-007',
+    citationCount: 6,
+  },
+];
+&nbsp;
+export const SEMANTIC_SCHOLAR_MOCK_PAPERS: PaperMetadata[] = [
+  {
+    source: 'semanticscholar', externalId: '649def34f8be52c8b66281af98ae884',
+    title: 'A Survey of Transformer-Based Approaches for Scientific Literature Summarization',
+    authors: ['A. Novak', 'J. Kim'], year: 2024,
+    abstract: 'We survey transformer-based extractive and abstractive summarization methods applied to scientific literature.',
+    venue: 'ACL', url: 'https://www.semanticscholar.org/paper/649def34f8be52c8b66281af98ae884',
+    citationCount: 42,
+  },
+  {
+    source: 'semanticscholar', externalId: '7a1c2e3f4b5d6a7c8e9f0a1b2c3d4e5f',
+    title: 'Graduate Student Mental Health: A Longitudinal Study of Stress and Coping',
+    authors: ['S. Martinez', 'R. Chen', 'L. Park'], year: 2022,
+    abstract: 'This longitudinal study tracks stress and coping strategies among graduate students across three academic years.',
+    venue: 'Journal of Higher Education', url: 'https://www.semanticscholar.org/paper/7a1c2e3f4b5d6a7c8e9f0a1b2c3d4e5f',
+    citationCount: 18,
+  },
+  {
+    source: 'semanticscholar', externalId: '1f2e3d4c5b6a7988776655443322110',
+    title: 'Energy-Efficient Routing Protocols for Wireless Sensor Networks: A Review',
+    authors: ['M. Okafor'], year: 2023,
+    abstract: 'We review energy-efficient routing protocols for wireless sensor networks and compare their performance under load.',
+    venue: 'IEEE Sensors Journal', url: 'https://www.semanticscholar.org/paper/1f2e3d4c5b6a7988776655443322110',
+    citationCount: 29,
+  },
+  {
+    source: 'semanticscholar', externalId: 'ab12cd34ef56ab78cd90ef12ab34cd56',
+    title: 'Reinforcement Learning for Robotic Path Planning in Dynamic Environments',
+    authors: ['T. Ivanov', 'H. Suzuki'], year: 2024,
+    abstract: 'A reinforcement learning framework for path planning that adapts to dynamic obstacles in real time.',
+    venue: 'ICRA', url: 'https://www.semanticscholar.org/paper/ab12cd34ef56ab78cd90ef12ab34cd56',
+    citationCount: 11,
+  },
+  {
+    source: 'semanticscholar', externalId: 'de45fa67bc89de01fa23bc45de67fa89',
+    title: 'Research Ethics Training and Its Impact on Plagiarism Prevention in Higher Education',
+    authors: ['C. Dubois'], year: 2021,
+    abstract: 'We evaluate whether structured research ethics training reduces self-reported plagiarism among doctoral students.',
+    venue: 'Studies in Higher Education', url: 'https://www.semanticscholar.org/paper/de45fa67bc89de01fa23bc45de67fa89',
+    citationCount: 33,
+  },
+  {
+    source: 'semanticscholar', externalId: '99887766554433221100ffeeddccbbaa',
+    title: 'Blockchain-Based Data Integrity Verification for Academic Repositories',
+    authors: ['Y. Tanaka', 'P. Silva'], year: 2023,
+    abstract: 'We propose a blockchain-based scheme for verifying the integrity of records stored in academic data repositories.',
+    venue: 'Journal of Information Security', url: 'https://www.semanticscholar.org/paper/99887766554433221100ffeeddccbbaa',
+    citationCount: 9,
+  },
+  {
+    source: 'semanticscholar', externalId: '00112233445566778899aabbccddeeff',
+    title: 'Self-Regulated Learning Strategies in Online Higher Education',
+    authors: ['E. Johansson'], year: 2022,
+    abstract: 'This study examines the self-regulated learning strategies used by students in fully online graduate courses.',
+    venue: 'Computers &amp; Education', url: 'https://www.semanticscholar.org/paper/00112233445566778899aabbccddeeff',
+    citationCount: 21,
+  },
+];
+&nbsp;
+/**
+ * Filters a mock fixture set by naive substring matching against the title
+ * and abstract, simulating a real provider's relevance search without any
+ * network call. Deterministic: same query + same fixture array always
+ * yields the same ordered subset.
+ *
+ * An empty or whitespace-only query returns the first `limit` fixtures
+ * unfiltered ("browse" behavior). A non-empty query that matches nothing
+ * falls back to the first `limit` fixtures too, so mock mode never starves
+ * the pipeline of results it can render — mirroring the real providers'
+ * behavior of usually returning *something* for a broad query.
+ */
+export function filterMockPapers(papers: PaperMetadata[], query: string, limit: number): PaperMetadata[] {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length === 0) {
+    return papers.slice(0, limit);
+  }
+&nbsp;
+  const tokens = trimmed.split(/\s+/).filter((token) =&gt; token.length &gt; 0);
+  const matched = papers.filter((paper) =&gt; {
+    const haystack = `${paper.title} ${paper.<span class="branch-0 cbranch-no" title="branch not covered" >abstract ?? ''}</span> ${paper.authors.join(' ')}`.toLowerCase();
+    return tokens.some((token) =&gt; haystack.includes(token));
+  });
+&nbsp;
+  return (matched.length &gt; 0 ? matched : papers).slice(0, limit);
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-07-10T14:26:00.608Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

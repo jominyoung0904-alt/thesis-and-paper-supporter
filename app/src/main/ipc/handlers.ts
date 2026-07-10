@@ -47,6 +47,7 @@ export interface IpcHandlerDeps {
 }
 
 /** Registers every IPC handler this app exposes. Call once during bootstrap. */
+// @AX:ANCHOR: [AUTO] central IPC wiring — composition root registering every channel handler. Related: SPEC-TSA-001
 export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   const { keyStore, settingsFile, getSettings, setSettings, memoryFilePath } = deps;
 
@@ -76,14 +77,12 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
     async (_event, payload: SaveProviderAndKeyRequest): Promise<SaveProviderAndKeyResult> => {
       const { provider, key, mode } = payload;
 
-      const saveResult = keyStore.saveKey(provider, key);
-      if (!saveResult.ok) {
-        return { ok: false, message: saveResult.userMessage };
-      }
-
       const updatedSettings: AppSettings = { ...getSettings(), llm: { provider, mode } };
 
+      // Verify the key against the live endpoint BEFORE persisting anything,
+      // so a failed connectivity check never leaves an unverified key behind.
       try {
+        // @AX:TODO: [AUTO] DEFAULT_MODELS[provider] is hardcoded — load model ids from remote config instead. Related: NFR-RISK-009, T27
         const testAdapter = createAdapter(provider, { baseUrl: updatedSettings.endpoints[provider], apiKey: key });
         await testAdapter.chat({
           model: DEFAULT_MODELS[provider],
@@ -92,6 +91,11 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
         });
       } catch (err) {
         return { ok: false, message: translateLlmError(err).message };
+      }
+
+      const saveResult = keyStore.saveKey(provider, key);
+      if (!saveResult.ok) {
+        return { ok: false, message: saveResult.userMessage };
       }
 
       saveSettings(settingsFile, updatedSettings);

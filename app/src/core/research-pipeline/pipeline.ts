@@ -35,6 +35,8 @@ interface SearchOutcome {
  * condition (bad LLM JSON, a dead source): those degrade to fallbacks and
  * transparent reporting instead.
  */
+// @AX:ANCHOR: [AUTO] deep-research orchestration entry point, wired from main/ipc/handlers.ts. Related: FR-RES-001~006
+// @AX:TODO: [AUTO] KCI/ScienceON real-server response schema is unconfirmed — see core/academic-api/kciClient.ts, scienceOnClient.ts. Related: FR-RES-002
 export async function runDeepResearch(input: DeepResearchInput): Promise<DeepResearchResult> {
   const usage = createUsage();
   const emit = (stage: PipelineStage, detail?: string): void => input.onProgress?.({ stage, detail });
@@ -57,6 +59,7 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
       ? await screenPapers(input.question, deduped, input.memory, screeningLlm, screeningModel, usage)
       : [];
 
+  // @AX:NOTE: [AUTO] report assembly is deterministic — bibliography is built from PaperMetadata only, never LLM-authored. Related: FR-RES-005
   // (e) Deterministic report assembly.
   emit('report');
   const report = await assembleReport(

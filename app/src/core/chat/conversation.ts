@@ -57,6 +57,7 @@ export class ConversationManager {
    * accumulated history exceeds the configured threshold), then calls the
    * LLM with the full (possibly compacted) history plus the new turn.
    */
+  // @AX:ANCHOR: [AUTO] single per-turn entry point for the idea-meeting chat — invoked from main/ipc/handlers.ts. Related: FR-CHT-001
   async send(userText: string): Promise<ChatTurnResult> {
     const threshold = this.deps.compactionThresholdTokens ?? DEFAULT_COMPACTION_THRESHOLD_TOKENS;
     const { history } = await maybeCompact(
@@ -129,6 +130,7 @@ function toLlmMessages(history: readonly ChatMessage[]): LlmMessage[] {
  * failure (malformed JSON, missing fields), the tag is silently ignored —
  * `decision` is left undefined and the text is returned as-is.
  */
+// @AX:NOTE: [AUTO] this only proposes a decision — persisting it into memory requires explicit user confirmation in the chat UI. Related: FR-MEM-002
 function extractDecision(text: string): { text: string; decision?: SuggestedDecision } {
   const match = text.match(DECISION_TAG_RE);
   if (!match) return { text: text.trim() };
