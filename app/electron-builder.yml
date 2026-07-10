@@ -1,0 +1,29 @@
+# electron-builder config for the portable (installer-less) Windows build.
+#
+# Constraint (NFR-DEP-001/003): no installer, no registry writes, no
+# AppData usage. The portable target produces a single self-contained
+# .exe placed at the distribution root alongside data/ and config/.
+appId: com.autopus.thesis-support-app
+productName: 논문서포터
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/main/**/*
+  - dist/renderer/**/*
+  - package.json
+
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: '${productName}.${ext}'
+
+portable:
+  # Keep the exe and its unpacked resources next to data/ and config/
+  # rather than extracting to a user-specific temp folder.
+  unpackDirName: app
+
+asar: true
