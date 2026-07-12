@@ -17,6 +17,7 @@ import type {
   ChatHistoryNewResult,
   ChatHistoryRemoveResult,
   ChatSendResult,
+  ClipboardReadTextResult,
   GateHistoryGetResult,
   GateHistoryListResult,
   GateHistoryRemoveResult,
@@ -111,6 +112,7 @@ const IpcChannels = {
   MOCK_REVIEW_HISTORY_LIST: 'writing:mock-review-history:list',
   MOCK_REVIEW_HISTORY_GET: 'writing:mock-review-history:get',
   MOCK_REVIEW_HISTORY_REMOVE: 'writing:mock-review-history:remove',
+  CLIPBOARD_READ_TEXT: 'clipboard:read-text',
 } as const;
 
 const thesisApi: ThesisApi = {
@@ -285,6 +287,11 @@ const thesisApi: ThesisApi = {
 
   removeMockReviewRecord(id: string): Promise<MockReviewHistoryRemoveResult> {
     return ipcRenderer.invoke(IpcChannels.MOCK_REVIEW_HISTORY_REMOVE, { id }) as Promise<MockReviewHistoryRemoveResult>;
+  },
+
+  // Never log the resolved value — see `main/ipc/clipboardHandlers.ts`'s security note.
+  readClipboardText(): Promise<ClipboardReadTextResult> {
+    return ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT) as Promise<ClipboardReadTextResult>;
   },
 };
 

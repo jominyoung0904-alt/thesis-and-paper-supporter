@@ -31,6 +31,7 @@ import { indexFilePath } from '../project/projectPaths';
 import type { ConversationManagerHolder } from './guards';
 import { registerAcademicKeyHandlers } from './academicKeyHandlers';
 import { registerChatHandlers } from './chatHandlers';
+import { registerClipboardHandlers } from './clipboardHandlers';
 import { createActiveChatSession, registerChatHistoryHandlers } from './chatHistoryHandlers';
 import type { ActiveChatSession } from './chatHistoryHandlers';
 import { registerGateHistoryHandlers } from './gateHistoryHandlers';
@@ -59,6 +60,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   const { keyStore, settingsFile, getSettings, setSettings, dataDir } = deps;
 
   registerAcademicKeyHandlers({ keyStore, getSettings });
+  registerClipboardHandlers();
 
   const indexStore = new ProjectIndexStore(indexFilePath(dataDir));
   const projectContext = new ProjectContext({

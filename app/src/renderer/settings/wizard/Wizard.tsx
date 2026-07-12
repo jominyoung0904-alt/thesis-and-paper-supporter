@@ -117,10 +117,12 @@ export function Wizard({ callbacks, onComplete }: WizardProps): JSX.Element {
         {state.step === 'keyInput' && (
           <KeyInputStep
             apiKey={state.apiKey}
+            provider={state.provider ?? 'gemini'}
             saving={state.saving}
             errorMessage={state.errorMessage}
             onChangeKey={(key) => dispatch({ type: 'SET_API_KEY', key })}
             onConfirm={handleConfirmKey}
+            readClipboardText={callbacks.readClipboardText}
           />
         )}
         {state.step === 'naverDoc' && (

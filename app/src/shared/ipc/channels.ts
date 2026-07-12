@@ -85,6 +85,12 @@ export const IpcChannels = {
   MOCK_REVIEW_HISTORY_GET: 'writing:mock-review-history:get',
   /** Deletes a single mock-review record by id (FR-WRT-011). */
   MOCK_REVIEW_HISTORY_REMOVE: 'writing:mock-review-history:remove',
+  /**
+   * Reads the OS clipboard's current plain-text contents — used only to
+   * offer a "붙여넣기" convenience banner on API-key input screens. Contents
+   * are never logged or persisted (see `main/ipc/clipboardHandlers.ts`).
+   */
+  CLIPBOARD_READ_TEXT: 'clipboard:read-text',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannels)[keyof typeof IpcChannels];

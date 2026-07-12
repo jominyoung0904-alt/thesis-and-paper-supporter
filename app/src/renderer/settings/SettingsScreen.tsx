@@ -39,6 +39,8 @@ export interface SettingsScreenCallbacks {
     key: string,
     mode: IpcLlmMode,
   ): Promise<{ ok: boolean; message?: string }>;
+  /** Reads the OS clipboard's current plain-text contents. Never log the resolved value. */
+  readClipboardText(): Promise<string>;
 }
 
 export interface SettingsScreenProps {
@@ -129,6 +131,7 @@ export function SettingsScreen({ callbacks }: SettingsScreenProps): JSX.Element 
           getLlmStatus: callbacks.getLlmStatus,
           saveProviderAndKey: callbacks.saveProviderAndKey,
           openExternal: callbacks.openExternal,
+          readClipboardText: callbacks.readClipboardText,
         }}
       />
 

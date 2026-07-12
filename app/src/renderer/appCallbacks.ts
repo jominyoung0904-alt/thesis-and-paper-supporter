@@ -48,6 +48,7 @@ export function createWizardCallbacks(): WizardCallbacks {
     // `WizardCallbacks`, which never needs to know about other providers.
     saveAcademicKey: (key) => window.thesisApi.saveAcademicKey('naverdoc', key),
     openExternal: (url) => window.thesisApi.openExternal(url),
+    readClipboardText: () => window.thesisApi.readClipboardText(),
   };
 }
 
@@ -118,6 +119,7 @@ export function createSettingsScreenCallbacks(): SettingsScreenCallbacks {
     openExternal: (url) => window.thesisApi.openExternal(url),
     getLlmStatus: () => window.thesisApi.getLlmStatus(),
     saveProviderAndKey: (provider, key, mode) => window.thesisApi.saveProviderAndKey(provider, key, mode),
+    readClipboardText: () => window.thesisApi.readClipboardText(),
   };
 }
 

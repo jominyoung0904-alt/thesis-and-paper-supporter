@@ -45,6 +45,12 @@ export interface WizardCallbacks {
   saveAcademicKey(key: string): Promise<SaveKeyResult>;
   /** Opens a URL in the user's default external browser. */
   openExternal(url: string): void;
+  /**
+   * Reads the OS clipboard's current plain-text contents — powers the
+   * `KeyInputStep` "붙여넣기" clipboard-detection banner. Never log the
+   * resolved value.
+   */
+  readClipboardText(): Promise<string>;
 }
 
 export interface WizardProps {

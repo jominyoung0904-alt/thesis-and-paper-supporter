@@ -12,6 +12,7 @@ import type {
   ChatHistoryNewResult,
   ChatHistoryRemoveResult,
   ChatSendResult,
+  ClipboardReadTextResult,
   GateHistoryGetResult,
   GateHistoryListResult,
   GateHistoryRemoveResult,
@@ -127,4 +128,10 @@ export interface ThesisApi {
   getMockReviewRecord(id: string): Promise<MockReviewHistoryGetResult>;
   /** Deletes a single mock-review record by id (FR-WRT-011). */
   removeMockReviewRecord(id: string): Promise<MockReviewHistoryRemoveResult>;
+  /**
+   * Reads the OS clipboard's current plain-text contents — used only to
+   * offer a "붙여넣기" convenience banner on API-key input screens. Never
+   * log the resolved value.
+   */
+  readClipboardText(): Promise<ClipboardReadTextResult>;
 }

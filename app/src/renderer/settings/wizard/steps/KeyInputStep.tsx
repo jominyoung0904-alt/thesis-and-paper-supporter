@@ -7,23 +7,55 @@
 import { useState } from 'react';
 
 import { apiKeyValidationMessage, validateApiKeyFormat } from '../wizardLogic';
+import { useClipboardKeyBanner } from '../useClipboardKeyBanner';
+import type { LlmProvider } from '../wizardTypes';
 
 interface KeyInputStepProps {
   apiKey: string;
+  /** Which provider's key format to check the clipboard against for the paste-suggestion banner. */
+  provider: LlmProvider;
   saving: boolean;
   errorMessage: string | null;
   onChangeKey(key: string): void;
   onConfirm(): void;
+  /** Reads the OS clipboard's current plain-text contents. Never logged (see `useClipboardKeyBanner.ts`). */
+  readClipboardText(): Promise<string>;
 }
 
-export function KeyInputStep({ apiKey, saving, errorMessage, onChangeKey, onConfirm }: KeyInputStepProps): JSX.Element {
+export function KeyInputStep({
+  apiKey,
+  provider,
+  saving,
+  errorMessage,
+  onChangeKey,
+  onConfirm,
+  readClipboardText,
+}: KeyInputStepProps): JSX.Element {
   const [reveal, setReveal] = useState(false);
   const validation = validateApiKeyFormat(apiKey);
   const showFormatHint = apiKey.length > 0 && !validation.ok;
+  const clipboardBanner = useClipboardKeyBanner(provider, apiKey, readClipboardText);
+
+  function handlePasteFromClipboard(): void {
+    onChangeKey(clipboardBanner.suggestedKey);
+    clipboardBanner.accept();
+  }
 
   return (
     <section className="wizard-key-input">
       <h2>발급받은 키를 붙여넣어 주세요</h2>
+
+      {clipboardBanner.visible && (
+        <div className="wizard-clipboard-banner" role="status">
+          <span>복사하신 키가 있는 것 같아요.</span>
+          <button type="button" className="wizard-btn-inline" onClick={handlePasteFromClipboard}>
+            붙여넣기
+          </button>
+          <button type="button" className="wizard-btn-inline-ghost" onClick={clipboardBanner.dismiss}>
+            닫기
+          </button>
+        </div>
+      )}
 
       <div className="wizard-key-field">
         <input

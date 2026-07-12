@@ -25,3 +25,4 @@ export * from './chatHistory';
 export * from './gateHistory';
 export * from './researchHandoff';
 export * from './writingExt';
+export * from './clipboard';

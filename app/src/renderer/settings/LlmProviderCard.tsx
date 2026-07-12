@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import type { IpcLlmMode, IpcLlmProvider } from '../../shared/ipc-channels';
 import { apiKeyValidationMessage, validateApiKeyFormat } from './wizard/wizardLogic';
 import { PROVIDER_KEY_URLS, PROVIDER_LABELS } from './wizard/wizardTypes';
+import { useClipboardKeyBanner } from './wizard/useClipboardKeyBanner';
 import type { LlmProviderCardState, LlmStatusView } from './llmProviderCardLogic';
 import {
   canChangeLlmConnection,
@@ -31,6 +32,8 @@ export interface LlmProviderCardCallbacks {
     mode: IpcLlmMode,
   ): Promise<{ ok: boolean; message?: string }>;
   openExternal(url: string): void;
+  /** Reads the OS clipboard's current plain-text contents. Never log the resolved value. */
+  readClipboardText(): Promise<string>;
 }
 
 const PROVIDERS: readonly IpcLlmProvider[] = ['gemini', 'claude', 'openai'];
@@ -105,6 +108,12 @@ export function LlmProviderCard({ callbacks }: { callbacks: LlmProviderCardCallb
 
   const keyValidation = validateApiKeyFormat(state.apiKey);
   const showFormatHint = state.apiKey.length > 0 && !keyValidation.ok;
+  const clipboardBanner = useClipboardKeyBanner(state.provider, state.apiKey, callbacks.readClipboardText);
+
+  function handlePasteFromClipboard(): void {
+    setState((current) => ({ ...current, apiKey: clipboardBanner.suggestedKey, message: null, messageKind: null }));
+    clipboardBanner.accept();
+  }
 
   return (
     <section className="settings-card settings-card-llm">
@@ -160,6 +169,18 @@ export function LlmProviderCard({ callbacks }: { callbacks: LlmProviderCardCallb
           발급 페이지 열기
         </button>
       </details>
+
+      {clipboardBanner.visible && (
+        <div className="settings-card-clipboard-banner" role="status">
+          <span>복사하신 키가 있는 것 같아요.</span>
+          <button type="button" className="settings-card-btn-inline" onClick={handlePasteFromClipboard}>
+            붙여넣기
+          </button>
+          <button type="button" className="settings-card-btn-inline-ghost" onClick={clipboardBanner.dismiss}>
+            닫기
+          </button>
+        </div>
+      )}
 
       <div className="settings-card-field">
         <input
