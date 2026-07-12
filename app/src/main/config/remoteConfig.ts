@@ -159,11 +159,15 @@ function isAllowedEndpointOverride(key: keyof EndpointsConfig, value: unknown): 
 const VALID_LLM_PROVIDERS: readonly LlmProvider[] = ['gemini', 'claude', 'openai'];
 
 /**
- * Security: a remote model-id override is passed straight into API request
- * bodies (`llmService.getModel()`), never used as a host/URL, so the only
- * risk is an attacker steering requests to an unexpected/expensive model or
- * injecting control characters. Restricted to a short, allowlisted charset
- * covering every real provider model id (letters, digits, `.`, `_`, `:`, `-`).
+ * Security: a remote model-id override flows into `llmService.getModel()`.
+ * Some adapters put the model id in the request BODY (Claude/OpenAI), others
+ * in the URL PATH (Gemini: `.../models/{model}:generateContent`). The charset
+ * allowlist below is what makes the URL-path use safe — it forbids `/`, `?`,
+ * `#`, `@`, `%`, and whitespace, so a remote value can never escape its path
+ * segment, spoof a host, or inject a query/control character. The base URL is
+ * separately pinned to a host allowlist (`ALLOWED_ENDPOINT_HOST_SUFFIXES`).
+ * Restricted to the charset covering every real provider model id (letters,
+ * digits, `.`, `_`, `:`, `-`).
  */
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9._:-]+$/;
 const MAX_MODEL_ID_LENGTH = 100;
