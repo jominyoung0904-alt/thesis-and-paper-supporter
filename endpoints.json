@@ -1,7 +1,11 @@
 {
-  "_readme": "논문 작성 서포터 원격 설정 파일입니다. 앱이 시작할 때 이 파일을 읽습니다. endpoints에 주소를 넣으면 앱의 API 주소를 zip 재배포 없이 바꿀 수 있습니다 (https + 각 서비스 공식 도메인만 허용됨). 이 파일이 없거나 읽기 실패해도 앱은 로컬 기본값으로 정상 동작합니다.",
+  "_readme": "논문 작성 서포터 원격 설정 파일입니다. 앱이 시작할 때 이 파일을 읽습니다. endpoints에 주소를 넣으면 앱의 API 주소를, models에 모델명을 넣으면 사용 모델을 zip 재배포 없이 바꿀 수 있습니다 (https + 각 서비스 공식 도메인만 허용, 모델명은 영숫자._:- 만 허용). 이 파일이 없거나 읽기 실패해도 앱은 로컬 기본값으로 정상 동작합니다.",
   "endpoints": {},
-  "models": {},
+  "models": {
+    "gemini": "gemini-2.5-flash",
+    "claude": "claude-sonnet-5",
+    "openai": "gpt-5-mini"
+  },
   "pricingNotice": "",
   "announcement": "",
   "academicKeys": {}
